@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, CATEGORIES } from '../lib/supabase'
-import type { Category, Place, Photo, PlaceType, Card, City } from '../lib/supabase'
+import type { Category, Place, PlaceType, Card, City } from '../lib/supabase'
 import CitySearch from './CitySearch'
 import PlaceSearch from './PlaceSearch'
 import {
@@ -42,15 +42,26 @@ function SortablePlace({
   onTypeChange: (t: PlaceType) => void
   onRemove: () => void
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: idx.toString() })
-  const style = { transform: CSS.Transform.toString(transform), transition }
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: idx.toString() })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 999 : 'auto',
+  }
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2">
       <span
         {...attributes}
         {...listeners}
-        className="text-gray-300 cursor-grab active:cursor-grabbing text-base flex-shrink-0 select-none px-1"
+        className="text-gray-400 cursor-grab active:cursor-grabbing flex-shrink-0 select-none"
+        style={{
+          padding: '10px 12px',
+          fontSize: 18,
+          touchAction: 'none',  // ← 핵심
+          WebkitUserSelect: 'none',
+        }}
       >
         ⠿
       </span>
@@ -89,22 +100,28 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
       ? editCard.places
       : [{ name: '', type: 'Activity' }]
   )
-  const [existingPhotos, setExistingPhotos] = useState<Photo[]>(editCard?.photos ?? [])
   const [saving, setSaving] = useState(false)
-
     const sensors = useSensors(
     useSensor(PointerSensor, {
-        activationConstraint: {
-        distance: 8,  // 8px 이상 움직여야 드래그 시작
-        },
+        activationConstraint: { distance: 8 },
     }),
     useSensor(TouchSensor, {
         activationConstraint: {
-        delay: 200,      // 200ms 꾹 누르면 드래그 시작
-        tolerance: 8,    // 8px 이내 움직임은 무시
+        delay: 400,    // 400ms로 늘림
+        tolerance: 5,
         },
     })
     )
+
+    // 모달 열릴 때 body 스크롤 막기
+useEffect(() => {
+  document.body.style.overflow = 'hidden'
+  document.body.style.touchAction = 'none'
+  return () => {
+    document.body.style.overflow = ''
+    document.body.style.touchAction = ''
+  }
+}, [])
 
   useEffect(() => {
     supabase.from('cities').select('*').order('name').then(({ data }) => {
@@ -127,11 +144,6 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
 
   function removePlace(idx: number) {
     setPlaces(prev => prev.filter((_, i) => i !== idx))
-  }
-
-  async function removeExistingPhoto(photo: Photo) {
-    await supabase.from('photos').delete().eq('id', photo.id)
-    setExistingPhotos(prev => prev.filter(p => p.id !== photo.id))
   }
 
   async function handleSave() {
@@ -288,7 +300,7 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
                 <input
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  placeholder="e.g. The Dalí Museum + Gelato"
+                  placeholder="Cafe hopping day"
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-gray-400 text-gray-900"
                 />
               </div>
@@ -349,28 +361,6 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
                   </button>
                 </div>
               </div>
-
-              {/* 수정 모드 - 기존 사진 */}
-              {isEdit && existingPhotos.length > 0 && (
-                <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 block">
-                    Photos
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {existingPhotos.map(photo => (
-                      <div key={photo.id} className="relative">
-                        <img src={photo.url} alt="" className="w-16 h-16 rounded-lg object-cover" />
-                        <button
-                          onClick={() => removeExistingPhoto(photo)}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
           ) : (
