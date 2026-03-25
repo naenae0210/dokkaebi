@@ -11,6 +11,12 @@ export type Category =
   | 'Beach' | 'City' | 'Culture' | 'Shopping'
   | 'Nature' | 'Nightout' | 'Work' | 'Themepark'
 
+  export interface Name {
+    id: string
+    name: string
+    created_at?: string
+  }
+
 export interface City {
   id: string
   name: string
@@ -26,6 +32,8 @@ export interface Place {
   card_id?: string
   name: string
   type: PlaceType
+  lat?: number | null
+  lng?: number | null
   created_at?: string
   updated_at?: string
 }

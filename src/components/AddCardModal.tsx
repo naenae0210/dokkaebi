@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, CATEGORIES } from '../lib/supabase'
 import type { Category, Place, Photo, PlaceType, Card, City } from '../lib/supabase'
 import CitySearch from './CitySearch'
+import PlaceSearch from './PlaceSearch'
 
 const TYPE_COLOR: Record<PlaceType, string> = {
   Activity:   'bg-purple-100 text-purple-700 border-purple-200',
@@ -57,8 +58,13 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
     setSaving(true)
     try {
       const validPlaces = places.filter(p => p.name.trim())
-      const placesToSave = validPlaces.map(p => ({ name: p.name, type: p.type }))
-
+      const placesToSave = validPlaces.map(p => ({
+        name: p.name,
+        type: p.type,
+        lat: p.lat ?? null,
+        lng: p.lng ?? null,
+      }))
+      
       if (isEdit && editCard) {
         await supabase
           .from('cards')
@@ -220,33 +226,54 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
                 </label>
                 <div className="flex flex-col gap-2">
                   {places.map((place, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <input
-                        value={place.name}
-                        onChange={e => setPlaces(prev =>
-                          prev.map((p, i) => i === idx ? { ...p, name: e.target.value } : p)
-                        )}
-                        placeholder="Place name"
-                        className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400 text-gray-900"
-                      />
-                      <select
-                        value={place.type}
-                        onChange={e => setPlaces(prev =>
-                          prev.map((p, i) => i === idx ? { ...p, type: e.target.value as PlaceType } : p)
-                        )}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:border-gray-400 text-gray-700 bg-white"
-                      >
-                        <option value="Activity">Activity</option>
-                        <option value="Restaurant">Restaurant</option>
-                        <option value="Cafe">Cafe</option>
-                      </select>
-                      {places.length > 1 && (
-                        <button
-                          onClick={() => removePlace(idx)}
-                          className="text-gray-300 hover:text-red-400 text-sm transition-colors"
-                        >
-                          ✕
-                        </button>
+                    <div key={idx}>
+                      {/* 이미 선택된 장소 */}
+                      {place.name ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-900 bg-gray-50 flex items-center justify-between">
+                            <span>{place.name}</span>
+                            <button
+                              onClick={() => setPlaces(prev =>
+                                prev.map((p, i) => i === idx ? { ...p, name: '', lat: null, lng: null } : p)
+                              )}
+                              className="text-gray-300 hover:text-gray-500 text-xs ml-2"
+                            >
+                              ✎
+                            </button>
+                          </div>
+                          <select
+                            value={place.type}
+                            onChange={e => setPlaces(prev =>
+                              prev.map((p, i) => i === idx ? { ...p, type: e.target.value as PlaceType } : p)
+                            )}
+                            className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:border-gray-400 text-gray-700 bg-white flex-shrink-0"
+                          >
+                            <option value="Activity">Activity</option>
+                            <option value="Restaurant">Restaurant</option>
+                            <option value="Cafe">Cafe</option>
+                          </select>
+                          {places.length > 1 && (
+                            <button
+                              onClick={() => removePlace(idx)}
+                              className="text-gray-300 hover:text-red-400 text-sm transition-colors flex-shrink-0"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        /* 장소 검색창 */
+                        <PlaceSearch
+                          type={place.type}
+                          onTypeChange={t => setPlaces(prev =>
+                            prev.map((p, i) => i === idx ? { ...p, type: t } : p)
+                          )}
+                          onSelect={result => setPlaces(prev =>
+                            prev.map((p, i) => i === idx ? { ...p, ...result } : p)
+                          )}
+                          onRemove={() => removePlace(idx)}
+                          showRemove={places.length > 1}
+                        />
                       )}
                     </div>
                   ))}
