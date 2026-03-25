@@ -7,6 +7,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -91,7 +92,19 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
   const [existingPhotos, setExistingPhotos] = useState<Photo[]>(editCard?.photos ?? [])
   const [saving, setSaving] = useState(false)
 
-  const sensors = useSensors(useSensor(PointerSensor))
+    const sensors = useSensors(
+    useSensor(PointerSensor, {
+        activationConstraint: {
+        distance: 8,  // 8px 이상 움직여야 드래그 시작
+        },
+    }),
+    useSensor(TouchSensor, {
+        activationConstraint: {
+        delay: 200,      // 200ms 꾹 누르면 드래그 시작
+        tolerance: 8,    // 8px 이내 움직임은 무시
+        },
+    })
+    )
 
   useEffect(() => {
     supabase.from('cities').select('*').order('name').then(({ data }) => {
