@@ -97,7 +97,6 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 className="hidden"
                 onChange={e => handleAddPhotos(e, card.id)}
