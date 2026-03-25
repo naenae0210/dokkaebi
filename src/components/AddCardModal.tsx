@@ -3,6 +3,21 @@ import { supabase, CATEGORIES } from '../lib/supabase'
 import type { Category, Place, Photo, PlaceType, Card, City } from '../lib/supabase'
 import CitySearch from './CitySearch'
 import PlaceSearch from './PlaceSearch'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const TYPE_COLOR: Record<PlaceType, string> = {
   Activity:   'bg-purple-100 text-purple-700 border-purple-200',
@@ -14,6 +29,48 @@ interface Props {
   editCard?: Card | null
   onClose: () => void
   onCreated: () => void
+}
+
+function SortablePlace({
+  place, idx, total, onEdit, onTypeChange, onRemove
+}: {
+  place: Place
+  idx: number
+  total: number
+  onEdit: () => void
+  onTypeChange: (t: PlaceType) => void
+  onRemove: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: idx.toString() })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+      <span
+        {...attributes}
+        {...listeners}
+        className="text-gray-300 cursor-grab active:cursor-grabbing text-base flex-shrink-0 select-none px-1"
+      >
+        ⠿
+      </span>
+      <div className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-900 bg-gray-50 flex items-center justify-between">
+        <span>{place.name}</span>
+        <button onClick={onEdit} className="text-gray-300 hover:text-gray-500 text-xs ml-2">✎</button>
+      </div>
+      <select
+        value={place.type}
+        onChange={e => onTypeChange(e.target.value as PlaceType)}
+        className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:border-gray-400 text-gray-700 bg-white flex-shrink-0"
+      >
+        <option value="Activity">Activity</option>
+        <option value="Restaurant">Restaurant</option>
+        <option value="Cafe">Cafe</option>
+      </select>
+      {total > 1 && (
+        <button onClick={onRemove} className="text-gray-300 hover:text-red-400 text-sm flex-shrink-0">✕</button>
+      )}
+    </div>
+  )
 }
 
 export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
@@ -34,12 +91,22 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
   const [existingPhotos, setExistingPhotos] = useState<Photo[]>(editCard?.photos ?? [])
   const [saving, setSaving] = useState(false)
 
+  const sensors = useSensors(useSensor(PointerSensor))
+
   useEffect(() => {
     supabase.from('cities').select('*').order('name').then(({ data }) => {
       if (data) setCities(data as City[])
       if (!data?.length) setShowNewCity(true)
     })
   }, [])
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = parseInt(active.id as string)
+    const newIdx = parseInt(over.id as string)
+    setPlaces(prev => arrayMove(prev, oldIdx, newIdx))
+  }
 
   function addPlace() {
     setPlaces(prev => [...prev, { name: '', type: 'Activity' }])
@@ -64,7 +131,7 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
         lat: p.lat ?? null,
         lng: p.lng ?? null,
       }))
-      
+
       if (isEdit && editCard) {
         await supabase
           .from('cards')
@@ -100,8 +167,7 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
   }
 
   const selectedCity = cities.find(c => c.id === cityId)
-  const canProceed = title.trim() 
-  console.log('canProceed:', canProceed, 'cityId:', cityId, 'title:', title.trim())
+  const canProceed = title.trim()
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
@@ -128,16 +194,12 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
                   City
                 </label>
 
-                {/* 기존 도시 목록 */}
                 {cities.length > 0 && !showNewCity && (
                   <div className="flex flex-wrap gap-2 mb-2">
                     {cities.map(city => (
                       <button
                         key={city.id}
-                        onClick={() => {
-                          setCityId(city.id)
-                          setCitySearch(city.name)
-                        }}
+                        onClick={() => { setCityId(city.id); setCitySearch(city.name) }}
                         className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                           cityId === city.id
                             ? 'bg-[#1C1B18] text-white border-[#1C1B18]'
@@ -156,7 +218,6 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
                   </div>
                 )}
 
-                {/* 새 도시 검색 — Google Places Autocomplete */}
                 {(showNewCity || cities.length === 0) && (
                   <div>
                     <CitySearch
@@ -219,64 +280,54 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
                 />
               </div>
 
-              {/* 장소 */}
+              {/* 장소 — 드래그 정렬 */}
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 block">
                   Places
                 </label>
                 <div className="flex flex-col gap-2">
-                  {places.map((place, idx) => (
-                    <div key={idx}>
-                      {/* 이미 선택된 장소 */}
-                      {place.name ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-900 bg-gray-50 flex items-center justify-between">
-                            <span>{place.name}</span>
-                            <button
-                              onClick={() => setPlaces(prev =>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={places.map((_, i) => i.toString())}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {places.map((place, idx) => (
+                        <div key={idx}>
+                          {place.name ? (
+                            <SortablePlace
+                              place={place}
+                              idx={idx}
+                              total={places.length}
+                              onEdit={() => setPlaces(prev =>
                                 prev.map((p, i) => i === idx ? { ...p, name: '', lat: null, lng: null } : p)
                               )}
-                              className="text-gray-300 hover:text-gray-500 text-xs ml-2"
-                            >
-                              ✎
-                            </button>
-                          </div>
-                          <select
-                            value={place.type}
-                            onChange={e => setPlaces(prev =>
-                              prev.map((p, i) => i === idx ? { ...p, type: e.target.value as PlaceType } : p)
-                            )}
-                            className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:border-gray-400 text-gray-700 bg-white flex-shrink-0"
-                          >
-                            <option value="Activity">Activity</option>
-                            <option value="Restaurant">Restaurant</option>
-                            <option value="Cafe">Cafe</option>
-                          </select>
-                          {places.length > 1 && (
-                            <button
-                              onClick={() => removePlace(idx)}
-                              className="text-gray-300 hover:text-red-400 text-sm transition-colors flex-shrink-0"
-                            >
-                              ✕
-                            </button>
+                              onTypeChange={t => setPlaces(prev =>
+                                prev.map((p, i) => i === idx ? { ...p, type: t } : p)
+                              )}
+                              onRemove={() => removePlace(idx)}
+                            />
+                          ) : (
+                            <PlaceSearch
+                              type={place.type}
+                              onTypeChange={t => setPlaces(prev =>
+                                prev.map((p, i) => i === idx ? { ...p, type: t } : p)
+                              )}
+                              onSelect={result => setPlaces(prev =>
+                                prev.map((p, i) => i === idx ? { ...p, ...result } : p)
+                              )}
+                              onRemove={() => removePlace(idx)}
+                              showRemove={places.length > 1}
+                            />
                           )}
                         </div>
-                      ) : (
-                        /* 장소 검색창 */
-                        <PlaceSearch
-                          type={place.type}
-                          onTypeChange={t => setPlaces(prev =>
-                            prev.map((p, i) => i === idx ? { ...p, type: t } : p)
-                          )}
-                          onSelect={result => setPlaces(prev =>
-                            prev.map((p, i) => i === idx ? { ...p, ...result } : p)
-                          )}
-                          onRemove={() => removePlace(idx)}
-                          showRemove={places.length > 1}
-                        />
-                      )}
-                    </div>
-                  ))}
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+
                   <button
                     onClick={addPlace}
                     className="text-xs text-gray-400 hover:text-gray-600 border border-dashed border-gray-200 rounded-lg py-2 transition-colors"
@@ -313,9 +364,7 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
             <div className="flex flex-col gap-4">
               <div className="bg-gray-50 rounded-xl p-4">
                 {selectedCity && (
-                  <div className="text-xs text-gray-400 mb-1">
-                    📍 {selectedCity.name}
-                  </div>
+                  <div className="text-xs text-gray-400 mb-1">📍 {selectedCity.name}</div>
                 )}
                 <div className="text-xs text-gray-400 mb-1">
                   {CATEGORIES.find(c => c.id === category)?.emoji} {category}
