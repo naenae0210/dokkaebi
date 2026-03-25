@@ -22,7 +22,7 @@ export default function PlaceSearch({
   onSelect,
   onRemove,
   showRemove = false,
-  placeholder = 'Search place...'
+   placeholder: _placeholder = 'Search place...'
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
 

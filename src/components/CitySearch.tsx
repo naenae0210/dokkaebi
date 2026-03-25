@@ -9,7 +9,7 @@ interface Props {
   placeholder?: string
 }
 
-export default function CitySearch({ value, onChange, onSelect, placeholder }: Props) {
+export default function CitySearch({ value: _value, onChange, onSelect, placeholder: _placeholder }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
