@@ -4,6 +4,7 @@ import type { Card, Category, City, Name } from './lib/supabase'
 import PlanCard from './components/PlanCard'
 import AddCardModal from './components/AddCardModal'
 import MapView from './components/MapView'
+import type { MapViewHandle } from './components/MapView'
 
 export default function App() {
   const [cards, setCards] = useState<Card[]>([])
@@ -20,6 +21,7 @@ export default function App() {
   const [editCard, setEditCard] = useState<Card | null>(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const inputRef = useRef<HTMLInputElement>(null)
+  const mapViewRef = useRef<MapViewHandle>(null)
 
   async function loadData() {
     const { data: cardData } = await supabase
@@ -43,14 +45,12 @@ export default function App() {
 
   useEffect(() => { loadData() }, [])
 
-  // 반응형 감지
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // 이름 슬라이드 — 1.5초마다
   useEffect(() => {
     if (names.length <= 1) return
     const interval = setInterval(() => {
@@ -63,7 +63,6 @@ export default function App() {
     return () => clearInterval(interval)
   }, [names])
 
-  // 입력창 열리면 포커스
   useEffect(() => {
     if (showNameInput) inputRef.current?.focus()
   }, [showNameInput])
@@ -86,13 +85,56 @@ export default function App() {
 
   const currentName = names[nameIdx]?.name ?? 'nae'
 
+  // 카드 목록 JSX — 모바일/데스크탑 공통
+  const cardList = (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        style={{
+          width: '100%', padding: isMobile ? '12px 20px' : '16px 20px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          borderBottom: '1px solid #F0EDE8',
+          borderTop: 'none', borderLeft: 'none', borderRight: 'none',
+          background: 'none', cursor: 'pointer', textAlign: 'left',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = '#FAFAF7')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+      >
+        <span style={{
+          width: isMobile ? 24 : 28, height: isMobile ? 24 : 28,
+          borderRadius: '50%', background: '#1C1B18', color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: isMobile ? 16 : 18, lineHeight: '1', flexShrink: 0
+        }}>+</span>
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#1C1B18' }}>New card</span>
+      </button>
+
+      {filtered.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', color: '#B0ABA6' }}>
+          <p style={{ fontSize: 13, margin: 0 }}>No cards yet</p>
+          <p style={{ fontSize: 11, margin: '4px 0 0' }}>Add one above</p>
+        </div>
+      ) : (
+        filtered.map(card => (
+          <PlanCard
+            key={card.id}
+            card={card}
+            active={activeCard?.id === card.id}
+            onClick={() => setActiveCard(card)}
+            onEdit={card => setEditCard(card)}
+            onPhotoAdded={loadData}
+            onPlaceClick={idx => mapViewRef.current?.focusMarker(idx)}
+          />
+        ))
+      )}
+    </>
+  )
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#F5F0E8' }}>
 
       {/* 헤더 */}
       <header style={{ background: '#1C1B18', color: '#F5F0E8', padding: '16px 20px 12px', flexShrink: 0 }}>
-
-        {/* 타이틀 행 */}
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <h1 style={{ fontFamily: 'Georgia, serif', fontSize: isMobile ? 22 : 26, letterSpacing: '-0.02em', margin: 0, display: 'flex', alignItems: 'baseline', gap: 8 }}>
             Hang <em style={{ fontStyle: 'italic', color: '#C8A87A' }}>with</em>
@@ -141,7 +183,6 @@ export default function App() {
           )}
         </div>
 
-        {/* 도시 필터 */}
         {cities.length > 0 && (
           <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
             <FilterBtn label="All City" active={cityFilter === 'all'} onClick={() => setCityFilter('all')} />
@@ -151,7 +192,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 카테고리 필터 */}
         <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
           <FilterBtn label="All Mood" active={catFilter === 'all'} onClick={() => setCatFilter('all')} dim />
           {CATEGORIES.map(cat => (
@@ -160,90 +200,42 @@ export default function App() {
         </div>
       </header>
 
-{/* 바디 */}
-<div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row' }}>
+      {/* 바디 */}
+      {isMobile ? (
+        // ── 모바일: 지도 위 / 카드 아래 ──
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
-  {/* 카드 패널 */}
-  <div style={{
-    width: isMobile ? '100%' : 400,
-    flexShrink: 0,
-    background: 'white',
-    overflowY: 'auto',
-    borderRight: isMobile ? 'none' : '1px solid #F0EDE8',
-    // 모바일에서 카드 선택되면 높이 줄어듦
-    height: isMobile ? (activeCard ? '40%' : '100%') : '100%',
-    transition: 'height 0.3s ease',
-  }}>
-    <button
-      onClick={() => setShowModal(true)}
-      style={{
-        width: '100%', padding: '16px 20px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        borderBottom: '1px solid #F0EDE8',
-        borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-        background: 'none', cursor: 'pointer', textAlign: 'left',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = '#FAFAF7')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-    >
-      <span style={{
-        width: 28, height: 28, borderRadius: '50%',
-        background: '#1C1B18', color: 'white',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 18, lineHeight: '1', flexShrink: 0
-      }}>+</span>
-      <span style={{ fontSize: 13, fontWeight: 500, color: '#1C1B18' }}>New card</span>
-    </button>
+          {/* 지도 — 위 55% */}
+          <div style={{ flex: '0 0 55%', position: 'relative', minHeight: 0 }}>
+            <MapView ref={mapViewRef} activeCard={activeCard} />
+          </div>
 
-    {filtered.length === 0 ? (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', color: '#B0ABA6' }}>
-        <p style={{ fontSize: 13, margin: 0 }}>No cards yet</p>
-        <p style={{ fontSize: 11, margin: '4px 0 0' }}>Add one above</p>
-      </div>
-    ) : (
-      filtered.map(card => (
-        <PlanCard
-          key={card.id}
-          card={card}
-          active={activeCard?.id === card.id}
-          onClick={() => setActiveCard(card)}
-          onEdit={card => setEditCard(card)}
-          onPhotoAdded={loadData}
-        />
-      ))
-    )}
-  </div>
-
-  {/* 지도 — 데스크탑: 항상 / 모바일: 카드 선택 시만 */}
-  {(!isMobile || activeCard) && (
-    <div style={{
-      flex: 1,
-      position: 'relative',
-      minHeight: 0,
-      // 모바일에서 카드 선택되면 아래 60% 차지
-      height: isMobile ? '60%' : '100%',
-      borderTop: isMobile ? '1px solid #F0EDE8' : 'none',
-    }}>
-      {/* 모바일 닫기 버튼 */}
-      {isMobile && activeCard && (
-        <button
-          onClick={() => setActiveCard(null)}
-          style={{
-            position: 'absolute', top: 12, left: 12,
-            zIndex: 1000, background: 'white',
-            border: 'none', borderRadius: 20,
-            padding: '6px 12px', fontSize: 12,
-            cursor: 'pointer', fontWeight: 500,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          }}
-        >
-          ✕ 지도 닫기
-        </button>
+          {/* 카드 리스트 — 아래 45% */}
+          <div style={{ flex: '0 0 45%', background: 'white', overflowY: 'auto', borderTop: '1px solid #F0EDE8' }}>
+            {/* 핸들 바 */}
+            <div style={{
+              display: 'flex', justifyContent: 'center',
+              padding: '8px 0 4px',
+              position: 'sticky', top: 0,
+              background: 'white', zIndex: 10,
+              borderBottom: '1px solid #F0EDE8',
+            }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E0DDD8' }} />
+            </div>
+            {cardList}
+          </div>
+        </div>
+      ) : (
+        // ── 데스크탑: 카드 왼쪽 / 지도 오른쪽 ──
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <div style={{ width: 400, flexShrink: 0, background: 'white', overflowY: 'auto', borderRight: '1px solid #F0EDE8' }}>
+            {cardList}
+          </div>
+          <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+            <MapView ref={mapViewRef} activeCard={activeCard} />
+          </div>
+        </div>
       )}
-      <MapView activeCard={activeCard} />
-    </div>
-  )}
-</div>
 
       {/* 모달 */}
       {(showModal || editCard) && (

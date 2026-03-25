@@ -15,9 +15,10 @@ interface Props {
   onClick: () => void
   onEdit: (card: Card) => void
   onPhotoAdded: () => void
+  onPlaceClick?: (idx: number) => void
 }
 
-export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded }: Props) {
+export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, onPlaceClick }: Props) {
   const [gallery, setGallery] = useState(false)
   const cat = CATEGORIES.find(c => c.id === card.category)
   const photos = card.photos ?? []
@@ -121,12 +122,17 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded }
 
         {/* 장소 목록 */}
         <div className="flex flex-col gap-1 mb-2">
-          {places.map(p => (
-            <div key={p.id} className="flex items-center gap-2">
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_COLOR[p.type] ?? ''}`}>
+          {places.map((p, i) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-2 cursor-pointer hover:opacity-60 transition-opacity"
+              onClick={e => { e.stopPropagation(); onPlaceClick?.(i) }}
+            >
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${TYPE_COLOR[p.type] ?? ''}`}>
                 {p.type}
               </span>
-              <span className="text-xs text-gray-600">{p.name}</span>
+              <span className="text-xs text-gray-600 flex-1">{p.name}</span>
+              <span className="text-[10px] text-gray-300">#{i + 1}</span>
             </div>
           ))}
         </div>
