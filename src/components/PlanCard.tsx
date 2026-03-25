@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, CATEGORIES, formatDate } from '../lib/supabase'
+import { supabase, CATEGORIES } from '../lib/supabase'
 import type { Card } from '../lib/supabase'
 import GalleryModal from './GalleryModal'
 
@@ -23,7 +23,6 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
   const cat = CATEGORIES.find(c => c.id === card.category)
   const photos = card.photos ?? []
   const places = card.places ?? []
-  const isEdited = card.updated_at !== card.created_at
 
   async function handleAddPhotos(e: React.ChangeEvent<HTMLInputElement>, cardId: string) {
     e.stopPropagation()
@@ -32,12 +31,14 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      const ext = file.name.split('.').pop()
+      const ext = file.name.split('.').pop() ?? 'jpg'
       const path = `${cardId}/${Date.now()}-${i}.${ext}`
 
-      const { data: upload } = await supabase.storage
+      const { data: upload, error } = await supabase.storage
         .from('place-galleries')
-        .upload(path, file)
+        .upload(path, file, { contentType: file.type })
+
+      console.log('업로드 결과:', upload, '에러:', error)
 
       if (upload) {
         const { data: { publicUrl } } = supabase.storage
@@ -50,7 +51,6 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
           order: photos.length + i
         })
 
-        // 첫 사진이면 커버로
         if (i === 0 && !card.cover_photo) {
           await supabase.from('cards')
             .update({ cover_photo: publicUrl })
@@ -80,7 +80,7 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
             {card.title}
           </span>
 
-          {/* 사진 버튼 — 있으면 갤러리, 없으면 업로드 */}
+          {/* 사진 버튼 */}
           {photos.length > 0 ? (
             <button
               onClick={e => { e.stopPropagation(); setGallery(true) }}
@@ -97,6 +97,7 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
               <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 multiple
                 className="hidden"
                 onChange={e => handleAddPhotos(e, card.id)}
@@ -121,7 +122,7 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
         )}
 
         {/* 장소 목록 */}
-        <div className="flex flex-col gap-1 mb-2">
+        <div className="flex flex-col gap-1">
           {places.map((p, i) => (
             <div
               key={p.id}
@@ -136,21 +137,9 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
             </div>
           ))}
         </div>
-
-        {/* 날짜 */}
-        <div className="flex items-center gap-1.5 mt-2">
-          <span className="text-[10px] text-gray-300">
-            {formatDate(card.created_at)}
-          </span>
-          {isEdited && (
-            <span className="text-[10px] text-gray-300">
-              · edited {formatDate(card.updated_at)}
-            </span>
-          )}
-        </div>
+        {/* 날짜 제거 */}
       </div>
 
-      {/* 갤러리 모달 */}
       {gallery && (
         <GalleryModal
           photos={photos}

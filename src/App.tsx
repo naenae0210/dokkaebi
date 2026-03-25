@@ -20,6 +20,7 @@ export default function App() {
   const [showModal, setShowModal] = useState(false)
   const [editCard, setEditCard] = useState<Card | null>(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const mapViewRef = useRef<MapViewHandle>(null)
 
@@ -183,17 +184,85 @@ export default function App() {
           )}
         </div>
 
-        {cities.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-            <FilterBtn label="All City" active={cityFilter === 'all'} onClick={() => setCityFilter('all')} />
-            {cities.map(city => (
-              <FilterBtn key={city.id} label={`📍 ${city.name}`} active={cityFilter === city.id} onClick={() => setCityFilter(city.id)} />
-            ))}
-          </div>
-        )}
+      {/* 도시 필터 — 선택된 도시만 표시, 클릭하면 드롭다운 */}
+      {cities.length > 0 && (
+        <div style={{ position: 'relative', marginTop: 12 }}>
+          <button
+            onClick={() => setShowCityDropdown(prev => !prev)}
+            style={{
+              fontSize: 11, fontWeight: 500,
+              padding: '4px 12px', borderRadius: 20,
+              border: cityFilter !== 'all'
+                ? '1px solid #C8773A'
+                : '1px solid rgba(255,255,255,0.18)',
+              background: cityFilter !== 'all' ? '#C8773A' : 'transparent',
+              color: cityFilter !== 'all' ? 'white' : '#A09888',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            📍 {cityFilter === 'all' ? 'Everywhere' : cities.find(c => c.id === cityFilter)?.name ?? 'Everywhere'}
+            <span style={{ fontSize: 9, opacity: 0.7 }}>▼</span>
+          </button>
+
+          {/* 드롭다운 */}
+          {showCityDropdown && (
+            <>
+              {/* 배경 클릭 시 닫기 */}
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                onClick={() => setShowCityDropdown(false)}
+              />
+              <div style={{
+                position: 'absolute', top: '100%', left: 0,
+                marginTop: 6, zIndex: 100,
+                background: '#2A2926', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 12, overflow: 'hidden',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                minWidth: 160,
+              }}>
+                <button
+                  onClick={() => { setCityFilter('all'); setShowCityDropdown(false) }}
+                  style={{
+                    width: '100%', textAlign: 'left',
+                    padding: '10px 14px', fontSize: 12,
+                    background: cityFilter === 'all' ? 'rgba(200,119,58,0.2)' : 'transparent',
+                    color: cityFilter === 'all' ? '#C8A87A' : '#A09888',
+                    border: 'none', cursor: 'pointer',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = cityFilter === 'all' ? 'rgba(200,119,58,0.2)' : 'transparent')}
+                >
+                  All City
+                </button>
+                {cities.map(city => (
+                  <button
+                    key={city.id}
+                    onClick={() => { setCityFilter(city.id); setShowCityDropdown(false) }}
+                    style={{
+                      width: '100%', textAlign: 'left',
+                      padding: '10px 14px', fontSize: 12,
+                      background: cityFilter === city.id ? 'rgba(200,119,58,0.2)' : 'transparent',
+                      color: cityFilter === city.id ? '#C8A87A' : '#A09888',
+                      border: 'none', cursor: 'pointer',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = cityFilter === city.id ? 'rgba(200,119,58,0.2)' : 'transparent')}
+                  >
+                    📍 {city.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
         <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-          <FilterBtn label="All Mood" active={catFilter === 'all'} onClick={() => setCatFilter('all')} dim />
+          <FilterBtn label="Mood" active={catFilter === 'all'} onClick={() => setCatFilter('all')} dim />
           {CATEGORIES.map(cat => (
             <FilterBtn key={cat.id} label={`${cat.emoji} ${cat.label}`} active={catFilter === cat.id} onClick={() => setCatFilter(cat.id)} dim />
           ))}
@@ -201,31 +270,29 @@ export default function App() {
       </header>
 
       {/* 바디 */}
-      {isMobile ? (
-        // ── 모바일: 지도 위 / 카드 아래 ──
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
-          {/* 지도 — 위 55% */}
-          <div style={{ flex: '0 0 55%', position: 'relative', minHeight: 0 }}>
-            <MapView ref={mapViewRef} activeCard={activeCard} />
-          </div>
-
-          {/* 카드 리스트 — 아래 45% */}
-          <div style={{ flex: '0 0 45%', background: 'white', overflowY: 'auto', borderTop: '1px solid #F0EDE8' }}>
-            {/* 핸들 바 */}
-            <div style={{
-              display: 'flex', justifyContent: 'center',
-              padding: '8px 0 4px',
-              position: 'sticky', top: 0,
-              background: 'white', zIndex: 10,
-              borderBottom: '1px solid #F0EDE8',
-            }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E0DDD8' }} />
+            {/* 지도 — 위 40% */}
+            <div style={{ flex: '0 0 40%', position: 'relative', minHeight: 0 }}>
+              <MapView ref={mapViewRef} activeCard={activeCard} />
             </div>
-            {cardList}
+
+            {/* 카드 리스트 — 아래 60% */}
+            <div style={{ flex: '0 0 60%', background: 'white', overflowY: 'auto', borderTop: '1px solid #F0EDE8' }}>
+              <div style={{
+                display: 'flex', justifyContent: 'center',
+                padding: '8px 0 4px',
+                position: 'sticky', top: 0,
+                background: 'white', zIndex: 10,
+                borderBottom: '1px solid #F0EDE8',
+              }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E0DDD8' }} />
+              </div>
+              {cardList}
+            </div>
           </div>
-        </div>
-      ) : (
+        ) : (
         // ── 데스크탑: 카드 왼쪽 / 지도 오른쪽 ──
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           <div style={{ width: 400, flexShrink: 0, background: 'white', overflowY: 'auto', borderRight: '1px solid #F0EDE8' }}>
