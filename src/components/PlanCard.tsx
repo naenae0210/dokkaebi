@@ -81,28 +81,34 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
           </span>
 
           {/* 사진 버튼 */}
-          {photos.length > 0 ? (
-            <button
-              onClick={e => { e.stopPropagation(); setGallery(true) }}
-              className="text-gray-300 hover:text-green-400 transition-colors text-sm flex-shrink-0"
+            <div
+            style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}
+            onClick={e => e.stopPropagation()}
             >
-              📷 {photos.length}
-            </button>
-          ) : (
+            {/* 📷 — 항상 파일 선택 */}
             <label
-              className="text-gray-300 hover:text-green-400 transition-colors text-sm flex-shrink-0 cursor-pointer"
-              onClick={e => e.stopPropagation()}
+                style={{ fontSize: 12, color: '#9CA3AF', padding: '4px 4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
             >
-              📷
-              <input
+                📷
+                <input
                 type="file"
                 accept="image/*"
                 multiple
-                className="hidden"
+                style={{ display: 'none' }}
                 onChange={e => handleAddPhotos(e, card.id)}
-              />
+                />
             </label>
-          )}
+
+            {/* 숫자 — 사진 있을 때만, 클릭하면 갤러리 */}
+            {photos.length > 0 && (
+                <button
+                onClick={() => setGallery(true)}
+                style={{ fontSize: 11, color: '#9CA3AF', padding: '4px 2px', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                {photos.length}
+                </button>
+            )}
+</div>
 
           {/* 수정 버튼 */}
           <button
