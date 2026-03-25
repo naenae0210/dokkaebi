@@ -18,7 +18,6 @@ export default function App() {
   const [activeCard, setActiveCard] = useState<Card | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editCard, setEditCard] = useState<Card | null>(null)
-  const [showMap, setShowMap] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const inputRef = useRef<HTMLInputElement>(null)
 
