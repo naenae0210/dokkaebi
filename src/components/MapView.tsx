@@ -1,14 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import type { Card } from '../lib/supabase'
 
-interface Props {
-  activeCard: Card | null
+export interface MapViewHandle {
+  focusMarker: (idx: number) => void
 }
 
 async function geocode(name: string, cityName?: string): Promise<{ lat: number; lng: number } | null> {
   const query = cityName ? `${name}, ${cityName}` : name
   const key = (import.meta as any).env.VITE_GOOGLE_MAPS_KEY
-
   try {
     const res = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${key}`
@@ -25,11 +24,24 @@ async function geocode(name: string, cityName?: string): Promise<{ lat: number; 
   }
 }
 
-export default function MapView({ activeCard }: Props) {
+const MapView = forwardRef<MapViewHandle, { activeCard: Card | null }>(({ activeCard }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const infoWindowsRef = useRef<any[]>([])
   const [loading, setLoading] = useState(false)
+
+  // 외부에서 호출 가능
+  useImperativeHandle(ref, () => ({
+    focusMarker(idx: number) {
+      if (!mapRef.current || !markersRef.current[idx]) return
+      infoWindowsRef.current.forEach(iw => iw.close())
+      const marker = markersRef.current[idx]
+      mapRef.current.panTo(marker.getPosition())
+      mapRef.current.setZoom(16)
+      infoWindowsRef.current[idx]?.open(mapRef.current, marker)
+    }
+  }))
 
   // 지도 초기화
   useEffect(() => {
@@ -58,9 +70,9 @@ export default function MapView({ activeCard }: Props) {
   useEffect(() => {
     if (!mapRef.current) return
 
-    // 기존 마커 제거
     markersRef.current.forEach(m => m.setMap(null))
     markersRef.current = []
+    infoWindowsRef.current = []
 
     if (!activeCard?.places?.length) return
 
@@ -73,24 +85,16 @@ export default function MapView({ activeCard }: Props) {
       for (let i = 0; i < activeCard!.places!.length; i++) {
         const place = activeCard!.places![i]
 
-
-       // const coords = await geocode(place.name, cityName)
-        // 좌표가 이미 있으면 geocode 스킵
         let coords: { lat: number; lng: number } | null = null
         if (place.lat && place.lng) {
           coords = { lat: place.lat, lng: place.lng }
-          console.log('저장된 좌표 사용:', place.name, coords)
         } else {
           coords = await geocode(place.name, cityName)
-          console.log('geocode 사용:', place.name, coords)
         }
-
-
         if (!coords) continue
 
         const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + (cityName ? `, ${cityName}` : ''))}`
 
-        // 커스텀 마커
         const marker = new google.maps.Marker({
           position: coords,
           map: mapRef.current,
@@ -110,7 +114,6 @@ export default function MapView({ activeCard }: Props) {
           }
         })
 
-        // 팝업 정보창
         const infoWindow = new google.maps.InfoWindow({
           content: `
             <div style="font-family:sans-serif;min-width:150px;padding:4px;">
@@ -125,14 +128,12 @@ export default function MapView({ activeCard }: Props) {
         })
 
         marker.addListener('click', () => {
-          // 기존 열린 팝업 닫기
-          markersRef.current.forEach(m => m._infoWindow?.close())
+          infoWindowsRef.current.forEach(iw => iw.close())
           infoWindow.open(mapRef.current, marker)
-          marker._infoWindow = infoWindow
         })
 
-        marker._infoWindow = infoWindow
         markersRef.current.push(marker)
+        infoWindowsRef.current.push(infoWindow)
         bounds.extend(coords)
       }
 
@@ -164,4 +165,6 @@ export default function MapView({ activeCard }: Props) {
       )}
     </div>
   )
-}
+})
+
+export default MapView
