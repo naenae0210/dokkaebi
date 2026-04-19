@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { supabase, CATEGORIES } from '../lib/supabase'
+import { CATEGORIES } from '../lib/supabase'
 import type { Category, Place, PlaceType, Card, City } from '../lib/supabase'
+import * as api from '../lib/api'
 import CitySearch from './CitySearch'
 import PlaceSearch from './PlaceSearch'
 import {
@@ -124,9 +125,9 @@ useEffect(() => {
 }, [])
 
   useEffect(() => {
-    supabase.from('cities').select('*').order('name').then(({ data }) => {
-      if (data) setCities(data as City[])
-      if (!data?.length) setShowNewCity(true)
+    api.getCities().then(data => {
+      setCities(data)
+      if (!data.length) setShowNewCity(true)
     })
   }, [])
 
@@ -149,39 +150,17 @@ useEffect(() => {
   async function handleSave() {
     setSaving(true)
     try {
-      const validPlaces = places.filter(p => p.name.trim())
-      const placesToSave = validPlaces.map(p => ({
-        name: p.name,
-        type: p.type,
-        lat: p.lat ?? null,
-        lng: p.lng ?? null,
-      }))
+      const placesToSave = places
+        .filter(p => p.name.trim())
+        .map(p => ({ name: p.name, type: p.type, lat: p.lat ?? null, lng: p.lng ?? null }))
 
       if (isEdit && editCard) {
-        await supabase
-          .from('cards')
-          .update({ category, title, city_id: cityId || null })
-          .eq('id', editCard.id)
-
-        await supabase.from('places').delete().eq('card_id', editCard.id)
-
-        if (placesToSave.length > 0) {
-          await supabase.from('places').insert(
-            placesToSave.map(p => ({ ...p, card_id: editCard.id }))
-          )
-        }
+        await api.updateCard(editCard.id, { category, title, city_id: cityId || null })
+        await api.replacePlaces(editCard.id, placesToSave)
       } else {
-        const { data: card, error } = await supabase
-          .from('cards')
-          .insert({ category, title, city_id: cityId || null })
-          .select()
-          .single()
-        if (error || !card) throw error
-
+        const card = await api.createCard({ category, title, city_id: cityId || null })
         if (placesToSave.length > 0) {
-          await supabase.from('places').insert(
-            placesToSave.map(p => ({ ...p, card_id: card.id }))
-          )
+          await api.replacePlaces(card.id, placesToSave)
         }
       }
 

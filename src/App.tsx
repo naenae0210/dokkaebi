@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
-import { supabase, CATEGORIES } from './lib/supabase'
+import { CATEGORIES } from './lib/supabase'
 import type { Card, Category, City, Name } from './lib/supabase'
+import * as api from './lib/api'
 import PlanCard from './components/PlanCard'
 import AddCardModal from './components/AddCardModal'
 import MapView from './components/MapView'
@@ -25,23 +26,14 @@ export default function App() {
   const mapViewRef = useRef<MapViewHandle>(null)
 
   async function loadData() {
-    const { data: cardData } = await supabase
-      .from('cards')
-      .select('*, city:cities(*), places(*), photos(*)')
-      .order('created_at', { ascending: false })
-    if (cardData) setCards(cardData as Card[])
-
-    const { data: cityData } = await supabase
-      .from('cities')
-      .select('*')
-      .order('name')
-    if (cityData) setCities(cityData as City[])
-
-    const { data: nameData } = await supabase
-      .from('names')
-      .select('*')
-      .order('created_at')
-    if (nameData) setNames(nameData as Name[])
+    const [cardData, cityData, nameData] = await Promise.all([
+      api.getCards(),
+      api.getCities(),
+      api.getNames(),
+    ])
+    setCards(cardData)
+    setCities(cityData)
+    setNames(nameData)
   }
 
   useEffect(() => { loadData() }, [])
@@ -70,12 +62,8 @@ export default function App() {
 
   async function addName() {
     if (!newName.trim()) return
-    const { data } = await supabase
-      .from('names')
-      .insert({ name: newName.trim() })
-      .select()
-      .single()
-    if (data) setNames(prev => [...prev, data as Name])
+    const data = await api.createName(newName.trim())
+    setNames(prev => [...prev, data])
     setNewName('')
     setShowNameInput(false)
   }
