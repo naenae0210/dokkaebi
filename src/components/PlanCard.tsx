@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { supabase, CATEGORIES } from '../lib/supabase'
+import { CATEGORIES } from '../lib/supabase'
 import type { Card } from '../lib/supabase'
+import { uploadPhoto } from '../lib/api'
 import GalleryModal from './GalleryModal'
 
 const TYPE_COLOR: Record<string, string> = {
@@ -30,33 +31,7 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
     if (!files.length) return
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const path = `${cardId}/${Date.now()}-${i}.${ext}`
-
-      const { data: upload, error } = await supabase.storage
-        .from('place-galleries')
-        .upload(path, file, { contentType: file.type })
-
-      console.log('업로드 결과:', upload, '에러:', error)
-
-      if (upload) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('place-galleries')
-          .getPublicUrl(path)
-
-        await supabase.from('photos').insert({
-          card_id: cardId,
-          url: publicUrl,
-          order: photos.length + i
-        })
-
-        if (i === 0 && !card.cover_photo) {
-          await supabase.from('cards')
-            .update({ cover_photo: publicUrl })
-            .eq('id', cardId)
-        }
-      }
+      await uploadPhoto(cardId, files[i], photos.length + i)
     }
     onPhotoAdded()
   }

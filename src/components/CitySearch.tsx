@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import type { City } from '../lib/supabase'
+import { findOrCreateCity } from '../lib/api'
 
 interface Props {
   value: string
@@ -82,24 +82,8 @@ export default function CitySearch({ value, onChange, onSelect, placeholder }: P
       async (place: any, status: string) => {
         const lat = status === 'OK' ? place?.geometry?.location?.lat() ?? null : null
         const lng = status === 'OK' ? place?.geometry?.location?.lng() ?? null : null
-
-        // DB에서 같은 이름 도시 확인
-        const { data: existing } = await supabase
-          .from('cities')
-          .select('*')
-          .ilike('name', cityName)
-          .maybeSingle()
-
-        if (existing) {
-          onSelect(existing as City)
-        } else {
-          const { data: newCity } = await supabase
-            .from('cities')
-            .insert({ name: cityName, lat, lng })
-            .select()
-            .single()
-          if (newCity) onSelect(newCity as City)
-        }
+        const city = await findOrCreateCity(cityName, lat, lng)
+        onSelect(city)
       }
     )
   }
