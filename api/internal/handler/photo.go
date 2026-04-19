@@ -14,11 +14,11 @@ import (
 )
 
 type PhotoHandler struct {
-	photoRepo *repository.PhotoRepo
-	cardRepo  *repository.CardRepo
+	photoRepo repository.PhotoRepository
+	cardRepo  repository.CardRepository
 }
 
-func NewPhotoHandler(photoRepo *repository.PhotoRepo, cardRepo *repository.CardRepo) *PhotoHandler {
+func NewPhotoHandler(photoRepo repository.PhotoRepository, cardRepo repository.CardRepository) *PhotoHandler {
 	return &PhotoHandler{photoRepo: photoRepo, cardRepo: cardRepo}
 }
 

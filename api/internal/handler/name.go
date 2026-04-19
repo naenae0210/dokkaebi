@@ -9,10 +9,10 @@ import (
 )
 
 type NameHandler struct {
-	repo *repository.NameRepo
+	repo repository.NameRepository
 }
 
-func NewNameHandler(repo *repository.NameRepo) *NameHandler {
+func NewNameHandler(repo repository.NameRepository) *NameHandler {
 	return &NameHandler{repo: repo}
 }
 

@@ -11,10 +11,10 @@ import (
 )
 
 type CityHandler struct {
-	repo *repository.CityRepo
+	repo repository.CityRepository
 }
 
-func NewCityHandler(repo *repository.CityRepo) *CityHandler {
+func NewCityHandler(repo repository.CityRepository) *CityHandler {
 	return &CityHandler{repo: repo}
 }
 

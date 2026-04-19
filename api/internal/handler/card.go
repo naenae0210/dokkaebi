@@ -10,10 +10,10 @@ import (
 )
 
 type CardHandler struct {
-	repo *repository.CardRepo
+	repo repository.CardRepository
 }
 
-func NewCardHandler(repo *repository.CardRepo) *CardHandler {
+func NewCardHandler(repo repository.CardRepository) *CardHandler {
 	return &CardHandler{repo: repo}
 }
 
