@@ -285,11 +285,10 @@ export default function App() {
           </div>
         </div>
 
-        {/* 도시 필터 */}
-        {cities.length > 0 && (
-          <div style={{ position: 'relative', marginTop: 12 }}>
-            <button
-              onClick={() => setShowCityDropdown(prev => !prev)}
+        {/* 도시 필터 — 항상 표시, 드롭다운은 도시 있을 때만 */}
+        <div style={{ position: 'relative', marginTop: 12 }}>
+          <button
+            onClick={() => cities.length > 0 && setShowCityDropdown(prev => !prev)}
               style={{
                 fontSize: 11, fontWeight: 500,
                 padding: '4px 12px', borderRadius: 20,
@@ -357,8 +356,7 @@ export default function App() {
                 </div>
               </>
             )}
-          </div>
-        )}
+        </div>
 
         {/* 카테고리 필터 */}
         <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
