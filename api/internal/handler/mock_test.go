@@ -21,10 +21,10 @@ type mockCardRepo struct {
 	coverErr     error
 }
 
-func (m *mockCardRepo) List(_ context.Context) ([]model.Card, error) {
+func (m *mockCardRepo) List(_ context.Context, _ *string) ([]model.Card, error) {
 	return m.listResult, m.listErr
 }
-func (m *mockCardRepo) Create(_ context.Context, category, title string, cityID *string) (*model.Card, error) {
+func (m *mockCardRepo) Create(_ context.Context, category, title string, cityID *string, userID *string) (*model.Card, error) {
 	return m.createResult, m.createErr
 }
 func (m *mockCardRepo) Update(_ context.Context, id, category, title string, cityID *string) error {
@@ -71,5 +71,16 @@ func (m *mockNameRepo) List(_ context.Context) ([]model.Name, error) {
 	return m.listResult, m.listErr
 }
 func (m *mockNameRepo) Create(_ context.Context, name string) (*model.Name, error) {
+	return m.createResult, m.createErr
+}
+
+// --- mockPhotoRepo ---
+
+type mockPhotoRepo struct {
+	createResult *model.Photo
+	createErr    error
+}
+
+func (m *mockPhotoRepo) Create(_ context.Context, cardID, url string, order int, visibility string) (*model.Photo, error) {
 	return m.createResult, m.createErr
 }

@@ -4,11 +4,21 @@ export type Category =
   | 'Beach' | 'City' | 'Culture' | 'Shopping'
   | 'Nature' | 'Nightout' | 'Work' | 'Themepark'
 
-  export interface Name {
-    id: string
-    name: string
-    created_at?: string
-  }
+export interface User {
+  id: string
+  email: string
+  nickname: string
+  avatar_url?: string | null
+  provider: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Name {
+  id: string
+  name: string
+  created_at?: string
+}
 
 export interface City {
   id: string
@@ -36,17 +46,21 @@ export interface Photo {
   card_id?: string
   url: string
   order: number
+  visibility: 'public' | 'private'
   created_at?: string
   updated_at?: string
 }
 
 export interface Card {
   id: string
+  user_id?: string | null
   city_id?: string | null
   city?: City
   category: Category
   title: string
   cover_photo?: string | null
+  visibility: 'public' | 'private'
+  owner_nickname?: string | null
   created_at: string
   updated_at: string
   places?: Place[]

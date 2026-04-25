@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+import { AuthProvider } from './lib/auth'
 
 // Google Maps SDK 로드
 const key = import.meta.env.VITE_GOOGLE_MAPS_KEY
@@ -19,5 +20,7 @@ script.defer = true
 document.head.appendChild(script)
 
 createRoot(document.getElementById('root')!).render(
-  <App />
+  <AuthProvider>
+    <App />
+  </AuthProvider>
 )

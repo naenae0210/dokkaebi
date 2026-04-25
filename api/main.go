@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"hangwith/api/internal/handler"
+	appmw "hangwith/api/internal/middleware"
 	"hangwith/api/internal/repository"
 )
 
@@ -23,12 +24,14 @@ func main() {
 	os.MkdirAll("/uploads", 0755)
 
 	// repositories
+	userRepo := repository.NewUserRepo(db)
 	cardRepo := repository.NewCardRepo(db)
 	cityRepo := repository.NewCityRepo(db)
 	nameRepo := repository.NewNameRepo(db)
 	photoRepo := repository.NewPhotoRepo(db)
 
 	// handlers
+	authH := handler.NewAuthHandler(userRepo)
 	cardH := handler.NewCardHandler(cardRepo)
 	cityH := handler.NewCityHandler(cityRepo)
 	nameH := handler.NewNameHandler(nameRepo)
@@ -41,7 +44,17 @@ func main() {
 
 	e.Static("/uploads", "/uploads")
 
+	// auth routes (no JWT required — these establish the session)
+	auth := e.Group("/api/auth")
+	auth.Use(appmw.JWTOptional)
+	auth.GET("/google", authH.GoogleLogin)
+	auth.GET("/google/callback", authH.GoogleCallback)
+	auth.GET("/me", authH.Me)
+	auth.POST("/logout", authH.Logout)
+
+	// api routes — JWT optional (guests can read, owners get extra access)
 	api := e.Group("/api")
+	api.Use(appmw.JWTOptional)
 	api.GET("/cards", cardH.List)
 	api.POST("/cards", cardH.Create)
 	api.PUT("/cards/:id", cardH.Update)

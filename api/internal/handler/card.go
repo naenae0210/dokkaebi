@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	appmw "hangwith/api/internal/middleware"
 	"hangwith/api/internal/model"
 	"hangwith/api/internal/repository"
 )
@@ -18,7 +19,8 @@ func NewCardHandler(repo repository.CardRepository) *CardHandler {
 }
 
 func (h *CardHandler) List(c echo.Context) error {
-	cards, err := h.repo.List(c.Request().Context())
+	currentUserID := appmw.UserIDFromContext(c)
+	cards, err := h.repo.List(c.Request().Context(), currentUserID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -35,7 +37,8 @@ func (h *CardHandler) Create(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 
-	card, err := h.repo.Create(c.Request().Context(), req.Category, req.Title, req.CityID)
+	userID := appmw.UserIDFromContext(c)
+	card, err := h.repo.Create(c.Request().Context(), req.Category, req.Title, req.CityID, userID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

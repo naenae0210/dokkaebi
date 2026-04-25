@@ -34,6 +34,12 @@ func (h *PhotoHandler) Upload(c echo.Context) error {
 	order := 0
 	fmt.Sscanf(c.FormValue("order"), "%d", &order)
 
+	// "public" or "private" — default to public
+	visibility := c.FormValue("visibility")
+	if visibility != "private" {
+		visibility = "public"
+	}
+
 	// save to disk
 	ext := filepath.Ext(file.Filename)
 	if ext == "" {
@@ -60,7 +66,7 @@ func (h *PhotoHandler) Upload(c echo.Context) error {
 
 	url := fmt.Sprintf("/uploads/%s/%s", cardID, filename)
 
-	photo, err := h.photoRepo.Create(ctx, cardID, url, order)
+	photo, err := h.photoRepo.Create(ctx, cardID, url, order, visibility)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

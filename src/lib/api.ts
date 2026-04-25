@@ -1,4 +1,4 @@
-import type { Card, City, Name } from './supabase'
+import type { Card, City, Name, User } from './supabase'
 
 const BASE = '/api'
 
@@ -7,6 +7,15 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   if (res.status === 204) return undefined as T
   return res.json()
+}
+
+// Auth
+export function getMe(): Promise<User> {
+  return req('/auth/me')
+}
+
+export function logout(): Promise<void> {
+  return req('/auth/logout', { method: 'POST' })
 }
 
 // Cards
@@ -41,10 +50,16 @@ export function replacePlaces(
   })
 }
 
-export function uploadPhoto(cardId: string, file: File, order: number): Promise<{ url: string }> {
+export function uploadPhoto(
+  cardId: string,
+  file: File,
+  order: number,
+  visibility: 'public' | 'private' = 'public',
+): Promise<{ url: string }> {
   const form = new FormData()
   form.append('file', file)
   form.append('order', String(order))
+  form.append('visibility', visibility)
   return req(`/cards/${cardId}/photos`, { method: 'POST', body: form })
 }
 

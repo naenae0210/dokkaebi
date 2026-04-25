@@ -18,11 +18,15 @@ func NewCardRepo(db *sqlx.DB) *CardRepo {
 	return &CardRepo{db: db}
 }
 
-func (r *CardRepo) List(ctx context.Context) ([]model.Card, error) {
+func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Card, error) {
 	var cards []model.Card
 	if err := r.db.SelectContext(ctx, &cards, `
-		SELECT id, city_id, category, title, cover_photo, created_at, updated_at
-		FROM cards ORDER BY created_at DESC
+		SELECT c.id, c.user_id, c.city_id, c.category, c.title, c.cover_photo,
+		       c.visibility, c.created_at, c.updated_at,
+		       u.nickname AS owner_nickname
+		FROM cards c
+		LEFT JOIN users u ON c.user_id = u.id
+		ORDER BY c.created_at DESC
 	`); err != nil {
 		return nil, err
 	}
@@ -40,7 +44,7 @@ func (r *CardRepo) List(ctx context.Context) ([]model.Card, error) {
 		}
 	}
 
-	// load cities
+	// bulk load cities
 	if len(cityIDSet) > 0 {
 		cityIDs := make([]string, 0, len(cityIDSet))
 		for id := range cityIDSet {
@@ -67,7 +71,7 @@ func (r *CardRepo) List(ctx context.Context) ([]model.Card, error) {
 		}
 	}
 
-	// load places
+	// bulk load places
 	var places []model.Place
 	if err := r.db.SelectContext(ctx, &places,
 		`SELECT * FROM places WHERE card_id = ANY($1)`,
@@ -76,12 +80,26 @@ func (r *CardRepo) List(ctx context.Context) ([]model.Card, error) {
 		return nil, err
 	}
 
-	// load photos
+	// bulk load photos — private photos only visible to the card owner
 	var photos []model.Photo
-	if err := r.db.SelectContext(ctx, &photos,
-		`SELECT * FROM photos WHERE card_id = ANY($1) ORDER BY "order"`,
-		pq.Array(cardIDs),
-	); err != nil {
+	var err error
+	if currentUserID != nil {
+		err = r.db.SelectContext(ctx, &photos, `
+			SELECT p.*
+			FROM photos p
+			JOIN cards c ON p.card_id = c.id
+			WHERE p.card_id = ANY($1)
+			  AND (p.visibility = 'public' OR c.user_id = $2)
+			ORDER BY p."order"
+		`, pq.Array(cardIDs), *currentUserID)
+	} else {
+		err = r.db.SelectContext(ctx, &photos, `
+			SELECT * FROM photos
+			WHERE card_id = ANY($1) AND visibility = 'public'
+			ORDER BY "order"
+		`, pq.Array(cardIDs))
+	}
+	if err != nil {
 		return nil, err
 	}
 
@@ -110,15 +128,16 @@ func (r *CardRepo) List(ctx context.Context) ([]model.Card, error) {
 	return cards, nil
 }
 
-func (r *CardRepo) Create(ctx context.Context, category, title string, cityID *string) (*model.Card, error) {
+func (r *CardRepo) Create(ctx context.Context, category, title string, cityID *string, userID *string) (*model.Card, error) {
 	var c model.Card
 	c.Places = []model.Place{}
 	c.Photos = []model.Photo{}
 	err := r.db.QueryRowxContext(ctx, `
-		INSERT INTO cards (id, category, title, city_id)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, city_id, category, title, cover_photo, created_at, updated_at
-	`, uuid.New().String(), category, title, cityID).StructScan(&c)
+		INSERT INTO cards (id, user_id, category, title, city_id, visibility)
+		VALUES ($1, $2, $3, $4, $5, 'public')
+		RETURNING id, user_id, city_id, category, title, cover_photo,
+		          visibility, created_at, updated_at, NULL AS owner_nickname
+	`, uuid.New().String(), userID, category, title, cityID).StructScan(&c)
 	return &c, err
 }
 

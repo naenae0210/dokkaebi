@@ -2,6 +2,17 @@ package model
 
 import "time"
 
+type User struct {
+	ID         string    `db:"id"          json:"id"`
+	Email      string    `db:"email"       json:"email"`
+	Nickname   string    `db:"nickname"    json:"nickname"`
+	AvatarURL  *string   `db:"avatar_url"  json:"avatar_url"`
+	Provider   string    `db:"provider"    json:"provider"`
+	ProviderID string    `db:"provider_id" json:"-"`
+	CreatedAt  time.Time `db:"created_at"  json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at"  json:"updated_at"`
+}
+
 type City struct {
 	ID        string    `db:"id"         json:"id"`
 	Name      string    `db:"name"       json:"name"`
@@ -24,25 +35,29 @@ type Place struct {
 }
 
 type Photo struct {
-	ID        string    `db:"id"         json:"id"`
-	CardID    *string   `db:"card_id"    json:"card_id"`
-	URL       string    `db:"url"        json:"url"`
-	Order     int       `db:"order"      json:"order"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	ID         string    `db:"id"         json:"id"`
+	CardID     *string   `db:"card_id"    json:"card_id"`
+	URL        string    `db:"url"        json:"url"`
+	Order      int       `db:"order"      json:"order"`
+	Visibility string    `db:"visibility" json:"visibility"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type Card struct {
-	ID         string    `db:"id"          json:"id"`
-	CityID     *string   `db:"city_id"     json:"city_id"`
-	Category   string    `db:"category"    json:"category"`
-	Title      string    `db:"title"       json:"title"`
-	CoverPhoto *string   `db:"cover_photo" json:"cover_photo"`
-	CreatedAt  time.Time `db:"created_at"  json:"created_at"`
-	UpdatedAt  time.Time `db:"updated_at"  json:"updated_at"`
-	City       *City     `db:"-"           json:"city"`
-	Places     []Place   `db:"-"           json:"places"`
-	Photos     []Photo   `db:"-"           json:"photos"`
+	ID             string    `db:"id"              json:"id"`
+	UserID         *string   `db:"user_id"         json:"user_id"`
+	CityID         *string   `db:"city_id"         json:"city_id"`
+	Category       string    `db:"category"        json:"category"`
+	Title          string    `db:"title"           json:"title"`
+	CoverPhoto     *string   `db:"cover_photo"     json:"cover_photo"`
+	Visibility     string    `db:"visibility"      json:"visibility"`
+	OwnerNickname  *string   `db:"owner_nickname"  json:"owner_nickname"`
+	CreatedAt      time.Time `db:"created_at"      json:"created_at"`
+	UpdatedAt      time.Time `db:"updated_at"      json:"updated_at"`
+	City           *City     `db:"-"               json:"city"`
+	Places         []Place   `db:"-"               json:"places"`
+	Photos         []Photo   `db:"-"               json:"photos"`
 }
 
 type Name struct {
