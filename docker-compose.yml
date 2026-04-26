@@ -10,7 +10,10 @@ services:
       - uploads:/uploads
 
   web:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_MAPS_KEY: ${VITE_GOOGLE_MAPS_KEY}
     restart: always
     ports:
       - "80:80"
