@@ -366,12 +366,46 @@ export default function App() {
           ))}
         </div>
 
-        {/* Map / List 탭 */}
-        <div style={{ display: 'flex', gap: 4, marginTop: 10 }}>
-          <TabBtn label="🗺 Map" active={viewMode === 'map'} onClick={() => setViewMode('map')} />
-          <TabBtn label="☰ List" active={viewMode === 'list'} onClick={() => setViewMode('list')} />
-        </div>
       </header>
+
+      {/* 탭 바 — 헤더 바로 아래, 두 칸 균등 분할 */}
+      <div style={{ display: 'flex', flexShrink: 0, background: '#F5F0E8' }}>
+        <button
+          onClick={() => setViewMode('map')}
+          style={{
+            flex: 1,
+            padding: '10px 0',
+            fontSize: 12, fontWeight: 600,
+            letterSpacing: '0.04em',
+            background: viewMode === 'map' ? 'white' : 'transparent',
+            color: viewMode === 'map' ? '#1C1B18' : '#A09888',
+            border: 'none',
+            borderBottom: viewMode === 'map' ? '2px solid #1C1B18' : '2px solid transparent',
+            borderRight: '1px solid #E8E3DC',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+        >
+          🗺 Map
+        </button>
+        <button
+          onClick={() => setViewMode('list')}
+          style={{
+            flex: 1,
+            padding: '10px 0',
+            fontSize: 12, fontWeight: 600,
+            letterSpacing: '0.04em',
+            background: viewMode === 'list' ? 'white' : 'transparent',
+            color: viewMode === 'list' ? '#1C1B18' : '#A09888',
+            border: 'none',
+            borderBottom: viewMode === 'list' ? '2px solid #1C1B18' : '2px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
+        >
+          ☰ List
+        </button>
+      </div>
 
       {/* 바디 */}
       {viewMode === 'list' ? (
@@ -452,21 +486,3 @@ function FilterBtn({
   )
 }
 
-function TabBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        fontSize: 11, fontWeight: 500,
-        padding: '4px 14px', borderRadius: 20,
-        border: active ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.12)',
-        background: active ? 'rgba(255,255,255,0.15)' : 'transparent',
-        color: active ? 'white' : '#7A7568',
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-      }}
-    >
-      {label}
-    </button>
-  )
-}
