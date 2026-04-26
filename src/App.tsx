@@ -150,19 +150,17 @@ export default function App() {
 
       {/* My / All 필터 */}
       {user && (
-        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #F0EDE8' }}>
+        <div style={{ display: 'flex', gap: 6, padding: '12px 16px', borderBottom: '1px solid #F0EDE8' }}>
           {(['mine', 'all'] as const).map(scope => (
             <button
               key={scope}
               onClick={() => setCardScope(scope)}
               style={{
-                flex: 1, padding: '10px 0',
-                fontSize: 12, fontWeight: 600,
-                letterSpacing: '0.04em',
-                background: 'white',
-                color: cardScope === scope ? '#1C1B18' : '#A09888',
-                border: 'none',
-                borderBottom: cardScope === scope ? '2px solid #1C1B18' : '2px solid transparent',
+                fontSize: 11, fontWeight: 500,
+                padding: '4px 12px', borderRadius: 20,
+                border: cardScope === scope ? '1px solid #1C1B18' : '1px solid #E0DDD8',
+                background: cardScope === scope ? '#1C1B18' : 'transparent',
+                color: cardScope === scope ? 'white' : '#A09888',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
