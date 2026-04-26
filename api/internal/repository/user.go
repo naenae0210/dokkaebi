@@ -42,3 +42,12 @@ func (r *UserRepo) FindByID(ctx context.Context, id string) (*model.User, error)
 	err := r.db.GetContext(ctx, &u, `SELECT * FROM users WHERE id = $1`, id)
 	return &u, err
 }
+
+func (r *UserRepo) ListNicknames(ctx context.Context) ([]string, error) {
+	var nicknames []string
+	err := r.db.SelectContext(ctx, &nicknames, `SELECT nickname FROM users ORDER BY created_at`)
+	if nicknames == nil {
+		nicknames = []string{}
+	}
+	return nicknames, err
+}

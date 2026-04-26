@@ -14,6 +14,10 @@ export function getMe(): Promise<User> {
   return req('/auth/me')
 }
 
+export function getNicknames(): Promise<string[]> {
+  return req('/auth/nicknames')
+}
+
 export function logout(): Promise<void> {
   return req('/auth/logout', { method: 'POST' })
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import type { Card, Category, PlaceType, City, Name } from './lib/supabase'
+import type { Card, Category, PlaceType, City } from './lib/supabase'
 import * as api from './lib/api'
 import { useAuth } from './lib/auth'
 import PlanCard from './components/PlanCard'
@@ -13,7 +13,7 @@ export default function App() {
   const { user, logout } = useAuth()
   const [cards, setCards] = useState<Card[]>([])
   const [cities, setCities] = useState<City[]>([])
-  const [names, setNames] = useState<Name[]>([])
+  const [nicknames, setNicknames] = useState<string[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [placeTypes, setPlaceTypes] = useState<PlaceType[]>([])
   const [nameIdx, setNameIdx] = useState(0)
@@ -29,24 +29,19 @@ export default function App() {
   const [cardScope, setCardScope] = useState<'mine' | 'all'>('mine')
   const mapViewRef = useRef<MapViewHandle>(null)
 
-  // 로그인한 유저 first name을 names 로테이션에 포함 (effects보다 먼저 계산)
-  const firstName = user ? user.nickname.split(' ')[0] : null
-  const rotatingNames = firstName
-    ? [{ id: 'me', name: firstName }, ...names]
-    : names
-  const currentName = rotatingNames[nameIdx % Math.max(rotatingNames.length, 1)]?.name ?? 'nae'
+  const currentName = nicknames[nameIdx % Math.max(nicknames.length, 1)] ?? 'us'
 
   async function loadData() {
-    const [cardRes, cityRes, nameRes, catRes, ptRes] = await Promise.allSettled([
+    const [cardRes, cityRes, nicknameRes, catRes, ptRes] = await Promise.allSettled([
       api.getCards(),
       api.getCities(),
-      api.getNames(),
+      api.getNicknames(),
       api.getCategories(),
       api.getPlaceTypes(),
     ])
     if (cardRes.status === 'fulfilled') setCards(cardRes.value)
     if (cityRes.status === 'fulfilled') setCities(cityRes.value)
-    if (nameRes.status === 'fulfilled') setNames(nameRes.value)
+    if (nicknameRes.status === 'fulfilled') setNicknames(nicknameRes.value)
     if (catRes.status === 'fulfilled') setCategories(catRes.value)
     if (ptRes.status === 'fulfilled') setPlaceTypes(ptRes.value)
   }
@@ -60,16 +55,16 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (rotatingNames.length <= 1) return
+    if (nicknames.length <= 1) return
     const interval = setInterval(() => {
       setAnimating(true)
       setTimeout(() => {
-        setNameIdx(i => (i + 1) % rotatingNames.length)
+        setNameIdx(i => (i + 1) % nicknames.length)
         setAnimating(false)
       }, 400)
     }, 1500)
     return () => clearInterval(interval)
-  }, [rotatingNames.length])
+  }, [nicknames.length])
 
   const filtered = cards
     .filter(c => cityFilter === 'all' || c.city_id === cityFilter)

@@ -54,6 +54,7 @@ func main() {
 	auth.GET("/google", authH.GoogleLogin)
 	auth.GET("/google/callback", authH.GoogleCallback)
 	auth.GET("/me", authH.Me)
+	auth.GET("/nicknames", authH.Nicknames)
 	auth.POST("/logout", authH.Logout)
 
 	// api routes — JWT optional (guests can read, owners get extra access)

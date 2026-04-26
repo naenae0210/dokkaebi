@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -101,6 +102,21 @@ func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 	})
 
 	return c.Redirect(http.StatusTemporaryRedirect, os.Getenv("APP_URL"))
+}
+
+// Nicknames returns the first name of every registered user.
+func (h *AuthHandler) Nicknames(c echo.Context) error {
+	nicknames, err := h.userRepo.ListNicknames(c.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	firstNames := make([]string, 0, len(nicknames))
+	for _, n := range nicknames {
+		if parts := strings.Fields(n); len(parts) > 0 {
+			firstNames = append(firstNames, parts[0])
+		}
+	}
+	return c.JSON(http.StatusOK, firstNames)
 }
 
 // Me returns the currently authenticated user, or 401.

@@ -9,6 +9,7 @@ import (
 type UserRepository interface {
 	UpsertByProvider(ctx context.Context, provider, providerID, email, nickname string, avatarURL *string) (*model.User, error)
 	FindByID(ctx context.Context, id string) (*model.User, error)
+	ListNicknames(ctx context.Context) ([]string, error)
 }
 
 type CardRepository interface {
