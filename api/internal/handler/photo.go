@@ -10,6 +10,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	appmw "hangwith/api/internal/middleware"
 	"hangwith/api/internal/repository"
 )
 
@@ -20,6 +21,20 @@ type PhotoHandler struct {
 
 func NewPhotoHandler(photoRepo repository.PhotoRepository, cardRepo repository.CardRepository) *PhotoHandler {
 	return &PhotoHandler{photoRepo: photoRepo, cardRepo: cardRepo}
+}
+
+func (h *PhotoHandler) Delete(c echo.Context) error {
+	photoID := c.Param("photoId")
+	userID := appmw.UserIDFromContext(c)
+	if userID == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "login required")
+	}
+	url, err := h.photoRepo.DeleteByOwner(c.Request().Context(), photoID, *userID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusForbidden, "not found or not owner")
+	}
+	os.Remove(url)
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (h *PhotoHandler) Upload(c echo.Context) error {

@@ -2,6 +2,8 @@ package handler
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 
@@ -59,6 +61,19 @@ func (h *CardHandler) Update(c echo.Context) error {
 	if err := h.repo.Update(c.Request().Context(), id, req.Category, req.Title, req.CityID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *CardHandler) Delete(c echo.Context) error {
+	id := c.Param("id")
+	userID := appmw.UserIDFromContext(c)
+	if userID == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "login required")
+	}
+	if err := h.repo.Delete(c.Request().Context(), id, *userID); err != nil {
+		return echo.NewHTTPError(http.StatusForbidden, "not found or not owner")
+	}
+	os.RemoveAll(filepath.Join("/uploads", id))
 	return c.NoContent(http.StatusNoContent)
 }
 

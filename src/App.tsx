@@ -18,8 +18,6 @@ export default function App() {
   const [placeTypes, setPlaceTypes] = useState<PlaceType[]>([])
   const [nameIdx, setNameIdx] = useState(0)
   const [animating, setAnimating] = useState(false)
-  const [showNameInput, setShowNameInput] = useState(false)
-  const [newName, setNewName] = useState('')
   const [cityFilter, setCityFilter] = useState<string>('all')
   const [catFilter, setCatFilter] = useState<string>('all')
   const [activeCard, setActiveCard] = useState<Card | null>(null)
@@ -28,12 +26,13 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [showCityDropdown, setShowCityDropdown] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('map')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [cardScope, setCardScope] = useState<'mine' | 'all'>('mine')
   const mapViewRef = useRef<MapViewHandle>(null)
 
-  // 로그인한 유저 닉네임을 names 로테이션에 포함 (effects보다 먼저 계산)
-  const rotatingNames = user
-    ? [{ id: 'me', name: user.nickname }, ...names]
+  // 로그인한 유저 first name을 names 로테이션에 포함 (effects보다 먼저 계산)
+  const firstName = user ? user.nickname.split(' ')[0] : null
+  const rotatingNames = firstName
+    ? [{ id: 'me', name: firstName }, ...names]
     : names
   const currentName = rotatingNames[nameIdx % Math.max(rotatingNames.length, 1)]?.name ?? 'nae'
 
@@ -72,24 +71,9 @@ export default function App() {
     return () => clearInterval(interval)
   }, [rotatingNames.length])
 
-  useEffect(() => {
-    if (showNameInput) inputRef.current?.focus()
-  }, [showNameInput])
-
-  async function addName() {
-    if (!newName.trim()) return
-    const data = await api.createName(newName.trim())
-    setNames(prev => [...prev, data])
-    setNewName('')
-    setShowNameInput(false)
-  }
-
   const filtered = cards
     .filter(c => cityFilter === 'all' || c.city_id === cityFilter)
     .filter(c => catFilter === 'all' || c.category === catFilter)
-
-  const myCards = user ? filtered.filter(c => c.user_id === user.id) : []
-  const allCards = filtered
 
   // 카드 목록 JSX — 모바일/데스크탑 공통
   const cardList = (
@@ -131,12 +115,18 @@ export default function App() {
             onClick={() => setActiveCard(card)}
             onEdit={card => setEditCard(card)}
             onPhotoAdded={loadData}
+            onDeleted={loadData}
             onPlaceClick={idx => mapViewRef.current?.focusMarker(idx)}
+            currentUserId={user?.id}
           />
         ))
       )}
     </>
   )
+
+  const scopedCards = cardScope === 'mine' && user
+    ? filtered.filter(c => c.user_id === user.id)
+    : filtered
 
   // 리스트 탭 JSX
   const listView = (
@@ -163,43 +153,37 @@ export default function App() {
         <span style={{ fontSize: 13, fontWeight: 500, color: '#1C1B18' }}>New card</span>
       </button>
 
-      {/* My Cards — 로그인한 경우만 */}
+      {/* My / All 필터 */}
       {user && (
-        <>
-          <div style={{ padding: '16px 20px 8px', fontSize: 11, fontWeight: 600, color: '#7A7568', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            My Cards
-          </div>
-          {myCards.length === 0 ? (
-            <div style={{ padding: '12px 20px 20px', fontSize: 12, color: '#B0ABA6' }}>
-              You haven't created any cards yet.
-            </div>
-          ) : (
-            myCards.map(card => (
-              <PlanCard
-                key={card.id}
-                card={card}
-                categories={categories}
-                placeTypes={placeTypes}
-                active={false}
-                onClick={() => {}}
-                onEdit={card => setEditCard(card)}
-                onPhotoAdded={loadData}
-              />
-            ))
-          )}
-        </>
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #F0EDE8' }}>
+          {(['mine', 'all'] as const).map(scope => (
+            <button
+              key={scope}
+              onClick={() => setCardScope(scope)}
+              style={{
+                flex: 1, padding: '10px 0',
+                fontSize: 12, fontWeight: 600,
+                letterSpacing: '0.04em',
+                background: 'white',
+                color: cardScope === scope ? '#1C1B18' : '#A09888',
+                border: 'none',
+                borderBottom: cardScope === scope ? '2px solid #1C1B18' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              {scope === 'mine' ? 'My Cards' : 'All Cards'}
+            </button>
+          ))}
+        </div>
       )}
 
-      {/* All Cards */}
-      <div style={{ padding: '16px 20px 8px', fontSize: 11, fontWeight: 600, color: '#7A7568', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        All Cards
-      </div>
-      {allCards.length === 0 ? (
-        <div style={{ padding: '12px 20px', fontSize: 12, color: '#B0ABA6' }}>
-          No cards found.
+      {scopedCards.length === 0 ? (
+        <div style={{ padding: '24px 20px', fontSize: 12, color: '#B0ABA6' }}>
+          {cardScope === 'mine' ? "You haven't created any cards yet." : 'No cards found.'}
         </div>
       ) : (
-        allCards.map(card => (
+        scopedCards.map(card => (
           <PlanCard
             key={card.id}
             card={card}
@@ -209,6 +193,8 @@ export default function App() {
             onClick={() => {}}
             onEdit={card => setEditCard(card)}
             onPhotoAdded={loadData}
+            onDeleted={loadData}
+            currentUserId={user?.id}
           />
         ))
       )}
@@ -255,43 +241,13 @@ export default function App() {
                   logout
                 </button>
               </>
-            ) : !showNameInput ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <a
-                  href="/api/auth/google"
-                  style={{ fontSize: 11, color: '#C8A87A', textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase' }}
-                >
-                  sign in
-                </a>
-                <button
-                  onClick={() => setShowNameInput(true)}
-                  style={{ fontSize: 11, color: '#7A7568', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', padding: 0 }}
-                >
-                  add your name
-                </button>
-              </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  ref={inputRef}
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') addName()
-                    if (e.key === 'Escape') { setShowNameInput(false); setNewName('') }
-                  }}
-                  placeholder="name"
-                  style={{
-                    fontSize: 13, background: 'transparent',
-                    border: 'none', borderBottom: '1px solid #7A7568',
-                    color: '#F5F0E8', outline: 'none',
-                    width: 80, padding: '2px 4px',
-                    fontFamily: 'Georgia, serif', fontStyle: 'italic',
-                  }}
-                />
-                <button onClick={addName} style={{ fontSize: 11, color: '#C8A87A', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>✓</button>
-                <button onClick={() => { setShowNameInput(false); setNewName('') }} style={{ fontSize: 11, color: '#7A7568', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
-              </div>
+              <a
+                href="/api/auth/google"
+                style={{ fontSize: 11, color: '#C8A87A', textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase' }}
+              >
+                sign in
+              </a>
             )}
           </div>
         </div>

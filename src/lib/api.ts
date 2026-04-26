@@ -39,6 +39,14 @@ export function updateCard(id: string, data: { category: string; title: string; 
   })
 }
 
+export function deleteCard(id: string): Promise<void> {
+  return req(`/cards/${id}`, { method: 'DELETE' })
+}
+
+export function deletePhoto(cardId: string, photoId: string): Promise<void> {
+  return req(`/cards/${cardId}/photos/${photoId}`, { method: 'DELETE' })
+}
+
 export function replacePlaces(
   cardId: string,
   places: Array<{ name: string; type: string; lat?: number | null; lng?: number | null }>

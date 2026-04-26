@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Card, Category, PlaceType } from '../lib/supabase'
-import { uploadPhoto } from '../lib/api'
+import { uploadPhoto, deleteCard, deletePhoto } from '../lib/api'
 import GalleryModal from './GalleryModal'
 
 const COLOR_CLASS: Record<string, string> = {
@@ -20,14 +20,19 @@ interface Props {
   onClick: () => void
   onEdit: (card: Card) => void
   onPhotoAdded: () => void
+  onDeleted?: () => void
   onPlaceClick?: (idx: number) => void
+  currentUserId?: string
 }
 
-export default function PlanCard({ card, categories, placeTypes, active, onClick, onEdit, onPhotoAdded, onPlaceClick }: Props) {
+export default function PlanCard({ card, categories, placeTypes, active, onClick, onEdit, onPhotoAdded, onDeleted, onPlaceClick, currentUserId }: Props) {
   const [gallery, setGallery] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [localPhotos, setLocalPhotos] = useState(card.photos ?? [])
+  const isOwner = !!currentUserId && card.user_id === currentUserId
   const cat = categories.find(c => c.id === card.category)
-  const photos = card.photos ?? []
+  const photos = localPhotos
   const places = card.places ?? []
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,6 +52,17 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
       await uploadPhoto(card.id, files[i], photos.length + i, visibility)
     }
     onPhotoAdded()
+  }
+
+  async function handleDeleteCard() {
+    await deleteCard(card.id)
+    onDeleted?.()
+  }
+
+  async function handleDeletePhoto(photoId: string) {
+    await deletePhoto(card.id, photoId)
+    setLocalPhotos(prev => prev.filter(p => p.id !== photoId))
+    if (localPhotos.length <= 1) setGallery(false)
   }
 
   return (
@@ -96,13 +112,40 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
             )}
           </div>
 
-          {/* 수정 버튼 */}
-          <button
-            onClick={e => { e.stopPropagation(); onEdit(card) }}
-            className="text-gray-300 hover:text-blue-400 transition-colors text-sm flex-shrink-0"
-          >
-            ✎
-          </button>
+          {/* 수정/삭제 버튼 — 본인 카드만 */}
+          {isOwner && (
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); onEdit(card) }}
+                className="text-gray-300 hover:text-blue-400 transition-colors text-sm flex-shrink-0"
+              >
+                ✎
+              </button>
+              {confirmDelete ? (
+                <span className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={handleDeleteCard}
+                    className="text-[10px] text-white bg-red-400 rounded px-1.5 py-0.5 hover:bg-red-500 transition-colors"
+                  >
+                    delete
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </span>
+              ) : (
+                <button
+                  onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
+                  className="text-gray-300 hover:text-red-400 transition-colors text-sm flex-shrink-0"
+                >
+                  🗑
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         {/* 도시 */}
@@ -194,9 +237,12 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
         </div>
       )}
 
-      {gallery && (
+      {gallery && photos.length > 0 && (
         <GalleryModal
           photos={photos}
+          cardId={card.id}
+          canDelete={isOwner}
+          onDeletePhoto={handleDeletePhoto}
           onClose={() => setGallery(false)}
         />
       )}

@@ -15,6 +15,7 @@ type CardRepository interface {
 	List(ctx context.Context, currentUserID *string) ([]model.Card, error)
 	Create(ctx context.Context, category, title string, cityID *string, userID *string) (*model.Card, error)
 	Update(ctx context.Context, id, category, title string, cityID *string) error
+	Delete(ctx context.Context, id, userID string) error
 	ReplacePlaces(ctx context.Context, cardID string, places []model.PlaceInput) error
 	SetCoverPhoto(ctx context.Context, cardID, url string) error
 }
@@ -44,4 +45,5 @@ type NameRepository interface {
 
 type PhotoRepository interface {
 	Create(ctx context.Context, cardID, url string, order int, visibility string) (*model.Photo, error)
+	DeleteByOwner(ctx context.Context, photoID, userID string) (url string, err error)
 }
