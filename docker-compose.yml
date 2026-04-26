@@ -2,8 +2,7 @@ services:
   api:
     build: ./api
     restart: always
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
+    env_file: .env
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -15,6 +14,7 @@ services:
       args:
         VITE_GOOGLE_MAPS_KEY: ${VITE_GOOGLE_MAPS_KEY}
     restart: always
+    env_file: .env
     ports:
       - "80:80"
     volumes:
