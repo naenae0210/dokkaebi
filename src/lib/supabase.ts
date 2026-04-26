@@ -1,8 +1,16 @@
-export type PlaceType = 'Restaurant' | 'Cafe' | 'Activity'
+export interface PlaceType {
+  id: string
+  label: string
+  color: string
+  sort_order: number
+}
 
-export type Category =
-  | 'Beach' | 'City' | 'Culture' | 'Shopping'
-  | 'Nature' | 'Nightout' | 'Work' | 'Themepark'
+export interface Category {
+  id: string
+  label: string
+  emoji: string
+  sort_order: number
+}
 
 export interface User {
   id: string
@@ -34,7 +42,7 @@ export interface Place {
   id?: string
   card_id?: string
   name: string
-  type: PlaceType
+  type: string
   lat?: number | null
   lng?: number | null
   created_at?: string
@@ -56,7 +64,7 @@ export interface Card {
   user_id?: string | null
   city_id?: string | null
   city?: City
-  category: Category
+  category: string
   title: string
   cover_photo?: string | null
   visibility: 'public' | 'private'
@@ -67,16 +75,6 @@ export interface Card {
   photos?: Photo[]
 }
 
-export const CATEGORIES: { id: Category; emoji: string; label: string }[] = [
-  { id: 'Beach',     emoji: '🏖', label: 'Beach'     },
-  { id: 'City',      emoji: '🏙', label: 'City'      },
-  { id: 'Culture',   emoji: '🎨', label: 'Culture'   },
-  { id: 'Shopping',  emoji: '🛍', label: 'Shopping'  },
-  { id: 'Nature',    emoji: '🌿', label: 'Nature'    },
-  { id: 'Nightout', emoji: '🌙', label: 'Nightout' },
-  { id: 'Work',      emoji: '💻', label: 'Work'      },
-  { id: 'Themepark', emoji: '🎢', label: 'Themepark' },
-]
 
 export function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {

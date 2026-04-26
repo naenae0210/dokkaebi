@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { CATEGORIES } from './lib/supabase'
-import type { Card, Category, City, Name } from './lib/supabase'
+import type { Card, Category, PlaceType, City, Name } from './lib/supabase'
 import * as api from './lib/api'
 import { useAuth } from './lib/auth'
 import PlanCard from './components/PlanCard'
@@ -15,12 +14,14 @@ export default function App() {
   const [cards, setCards] = useState<Card[]>([])
   const [cities, setCities] = useState<City[]>([])
   const [names, setNames] = useState<Name[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [placeTypes, setPlaceTypes] = useState<PlaceType[]>([])
   const [nameIdx, setNameIdx] = useState(0)
   const [animating, setAnimating] = useState(false)
   const [showNameInput, setShowNameInput] = useState(false)
   const [newName, setNewName] = useState('')
   const [cityFilter, setCityFilter] = useState<string>('all')
-  const [catFilter, setCatFilter] = useState<Category | 'all'>('all')
+  const [catFilter, setCatFilter] = useState<string>('all')
   const [activeCard, setActiveCard] = useState<Card | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editCard, setEditCard] = useState<Card | null>(null)
@@ -37,14 +38,18 @@ export default function App() {
   const currentName = rotatingNames[nameIdx % Math.max(rotatingNames.length, 1)]?.name ?? 'nae'
 
   async function loadData() {
-    const [cardRes, cityRes, nameRes] = await Promise.allSettled([
+    const [cardRes, cityRes, nameRes, catRes, ptRes] = await Promise.allSettled([
       api.getCards(),
       api.getCities(),
       api.getNames(),
+      api.getCategories(),
+      api.getPlaceTypes(),
     ])
     if (cardRes.status === 'fulfilled') setCards(cardRes.value)
     if (cityRes.status === 'fulfilled') setCities(cityRes.value)
     if (nameRes.status === 'fulfilled') setNames(nameRes.value)
+    if (catRes.status === 'fulfilled') setCategories(catRes.value)
+    if (ptRes.status === 'fulfilled') setPlaceTypes(ptRes.value)
   }
 
   useEffect(() => { loadData() }, [])
@@ -120,6 +125,8 @@ export default function App() {
           <PlanCard
             key={card.id}
             card={card}
+            categories={categories}
+            placeTypes={placeTypes}
             active={activeCard?.id === card.id}
             onClick={() => setActiveCard(card)}
             onEdit={card => setEditCard(card)}
@@ -171,6 +178,8 @@ export default function App() {
               <PlanCard
                 key={card.id}
                 card={card}
+                categories={categories}
+                placeTypes={placeTypes}
                 active={false}
                 onClick={() => {}}
                 onEdit={card => setEditCard(card)}
@@ -194,6 +203,8 @@ export default function App() {
           <PlanCard
             key={card.id}
             card={card}
+            categories={categories}
+            placeTypes={placeTypes}
             active={false}
             onClick={() => {}}
             onEdit={card => setEditCard(card)}
@@ -361,7 +372,7 @@ export default function App() {
         {/* 카테고리 필터 */}
         <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
           <FilterBtn label="Mood" active={catFilter === 'all'} onClick={() => setCatFilter('all')} dim />
-          {CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <FilterBtn key={cat.id} label={`${cat.emoji} ${cat.label}`} active={catFilter === cat.id} onClick={() => setCatFilter(cat.id)} dim />
           ))}
         </div>
@@ -448,6 +459,8 @@ export default function App() {
       {(showModal || editCard) && (
         <AddCardModal
           editCard={editCard}
+          categories={categories}
+          placeTypes={placeTypes}
           onClose={() => { setShowModal(false); setEditCard(null) }}
           onCreated={() => { loadData(); setShowModal(false); setEditCard(null) }}
         />

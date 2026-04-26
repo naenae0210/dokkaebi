@@ -25,6 +25,18 @@ type CityRepository interface {
 	Create(ctx context.Context, name string, lat, lng *float64) (*model.City, error)
 }
 
+type CategoryRepository interface {
+	List(ctx context.Context) ([]model.Category, error)
+	Create(ctx context.Context, id, label, emoji string, sortOrder int) (*model.Category, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type PlaceTypeRepository interface {
+	List(ctx context.Context) ([]model.PlaceType, error)
+	Create(ctx context.Context, id, label, color string, sortOrder int) (*model.PlaceType, error)
+	Delete(ctx context.Context, id string) error
+}
+
 type NameRepository interface {
 	List(ctx context.Context) ([]model.Name, error)
 	Create(ctx context.Context, name string) (*model.Name, error)

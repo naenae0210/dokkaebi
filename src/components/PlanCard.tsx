@@ -1,17 +1,21 @@
 import { useState } from 'react'
-import { CATEGORIES } from '../lib/supabase'
-import type { Card } from '../lib/supabase'
+import type { Card, Category, PlaceType } from '../lib/supabase'
 import { uploadPhoto } from '../lib/api'
 import GalleryModal from './GalleryModal'
 
-const TYPE_COLOR: Record<string, string> = {
-  Activity:   'bg-purple-100 text-purple-700',
-  Restaurant: 'bg-green-100 text-green-700',
-  Cafe:       'bg-amber-100 text-amber-700',
+const COLOR_CLASS: Record<string, string> = {
+  green:  'bg-green-100 text-green-700',
+  amber:  'bg-amber-100 text-amber-700',
+  purple: 'bg-purple-100 text-purple-700',
+  blue:   'bg-blue-100 text-blue-700',
+  red:    'bg-red-100 text-red-700',
+  gray:   'bg-gray-100 text-gray-600',
 }
 
 interface Props {
   card: Card
+  categories: Category[]
+  placeTypes: PlaceType[]
   active: boolean
   onClick: () => void
   onEdit: (card: Card) => void
@@ -19,10 +23,10 @@ interface Props {
   onPlaceClick?: (idx: number) => void
 }
 
-export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, onPlaceClick }: Props) {
+export default function PlanCard({ card, categories, placeTypes, active, onClick, onEdit, onPhotoAdded, onPlaceClick }: Props) {
   const [gallery, setGallery] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
-  const cat = CATEGORIES.find(c => c.id === card.category)
+  const cat = categories.find(c => c.id === card.category)
   const photos = card.photos ?? []
   const places = card.places ?? []
 
@@ -123,7 +127,7 @@ export default function PlanCard({ card, active, onClick, onEdit, onPhotoAdded, 
               className="flex items-center gap-2 cursor-pointer hover:opacity-60 transition-opacity"
               onClick={e => { e.stopPropagation(); onPlaceClick?.(i) }}
             >
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${TYPE_COLOR[p.type] ?? ''}`}>
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${COLOR_CLASS[placeTypes.find(pt => pt.id === p.type)?.color ?? ''] ?? 'bg-gray-100 text-gray-600'}`}>
                 {p.type}
               </span>
               <span className="text-xs text-gray-600 flex-1">{p.name}</span>

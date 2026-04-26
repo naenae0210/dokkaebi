@@ -1,4 +1,4 @@
-import type { Card, City, Name, User } from './supabase'
+import type { Card, City, Name, User, Category, PlaceType } from './supabase'
 
 const BASE = '/api'
 
@@ -80,6 +80,28 @@ export async function findOrCreateCity(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, lat, lng }),
   })
+}
+
+// Categories
+export function getCategories(): Promise<Category[]> {
+  return req('/categories')
+}
+export function createCategory(data: { id: string; label: string; emoji: string; sort_order: number }): Promise<Category> {
+  return req('/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+}
+export function deleteCategory(id: string): Promise<void> {
+  return req(`/categories/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+// PlaceTypes
+export function getPlaceTypes(): Promise<PlaceType[]> {
+  return req('/place-types')
+}
+export function createPlaceType(data: { id: string; label: string; color: string; sort_order: number }): Promise<PlaceType> {
+  return req('/place-types', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+}
+export function deletePlaceType(id: string): Promise<void> {
+  return req(`/place-types/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
 // Names

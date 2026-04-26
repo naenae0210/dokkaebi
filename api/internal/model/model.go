@@ -2,6 +2,20 @@ package model
 
 import "time"
 
+type Category struct {
+	ID        string `db:"id"         json:"id"`
+	Label     string `db:"label"      json:"label"`
+	Emoji     string `db:"emoji"      json:"emoji"`
+	SortOrder int    `db:"sort_order" json:"sort_order"`
+}
+
+type PlaceType struct {
+	ID        string `db:"id"         json:"id"`
+	Label     string `db:"label"      json:"label"`
+	Color     string `db:"color"      json:"color"`
+	SortOrder int    `db:"sort_order" json:"sort_order"`
+}
+
 type User struct {
 	ID         string    `db:"id"          json:"id"`
 	Email      string    `db:"email"       json:"email"`

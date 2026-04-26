@@ -12,6 +12,37 @@ CREATE TABLE IF NOT EXISTS users (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id);
 
+CREATE TABLE IF NOT EXISTS categories (
+    id         text        NOT NULL,
+    label      text        NOT NULL,
+    emoji      text        NOT NULL DEFAULT '',
+    sort_order integer     NOT NULL DEFAULT 0,
+    CONSTRAINT categories_pkey PRIMARY KEY (id)
+);
+INSERT INTO categories (id, label, emoji, sort_order) VALUES
+  ('Beach',     'Beach',     '🏖', 1),
+  ('City',      'City',      '🏙', 2),
+  ('Culture',   'Culture',   '🎨', 3),
+  ('Shopping',  'Shopping',  '🛍', 4),
+  ('Nature',    'Nature',    '🌿', 5),
+  ('Nightout',  'Nightout',  '🌙', 6),
+  ('Work',      'Work',      '💻', 7),
+  ('Themepark', 'Themepark', '🎢', 8)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS place_types (
+    id         text        NOT NULL,
+    label      text        NOT NULL,
+    color      text        NOT NULL DEFAULT 'gray',
+    sort_order integer     NOT NULL DEFAULT 0,
+    CONSTRAINT place_types_pkey PRIMARY KEY (id)
+);
+INSERT INTO place_types (id, label, color, sort_order) VALUES
+  ('Restaurant', 'Restaurant', 'green',  1),
+  ('Cafe',       'Cafe',       'amber',  2),
+  ('Activity',   'Activity',   'purple', 3)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS cities (
     id         uuid             NOT NULL DEFAULT gen_random_uuid(),
     name       text             NOT NULL,
@@ -61,7 +92,7 @@ CREATE TABLE IF NOT EXISTS places (
     id         uuid             NOT NULL DEFAULT gen_random_uuid(),
     card_id    uuid,
     name       text             NOT NULL,
-    type       text             CHECK (type = ANY (ARRAY['Restaurant', 'Cafe', 'Activity'])),
+    type       text,
     lat        double precision,
     lng        double precision,
     created_at timestamptz      DEFAULT now(),

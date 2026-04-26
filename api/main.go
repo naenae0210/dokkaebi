@@ -24,18 +24,22 @@ func main() {
 	os.MkdirAll("/uploads", 0755)
 
 	// repositories
-	userRepo := repository.NewUserRepo(db)
-	cardRepo := repository.NewCardRepo(db)
-	cityRepo := repository.NewCityRepo(db)
-	nameRepo := repository.NewNameRepo(db)
-	photoRepo := repository.NewPhotoRepo(db)
+	userRepo     := repository.NewUserRepo(db)
+	cardRepo     := repository.NewCardRepo(db)
+	cityRepo     := repository.NewCityRepo(db)
+	nameRepo     := repository.NewNameRepo(db)
+	photoRepo    := repository.NewPhotoRepo(db)
+	categoryRepo := repository.NewCategoryRepo(db)
+	placeTypeRepo := repository.NewPlaceTypeRepo(db)
 
 	// handlers
-	authH := handler.NewAuthHandler(userRepo)
-	cardH := handler.NewCardHandler(cardRepo)
-	cityH := handler.NewCityHandler(cityRepo)
-	nameH := handler.NewNameHandler(nameRepo)
-	photoH := handler.NewPhotoHandler(photoRepo, cardRepo)
+	authH        := handler.NewAuthHandler(userRepo)
+	cardH        := handler.NewCardHandler(cardRepo)
+	cityH        := handler.NewCityHandler(cityRepo)
+	nameH        := handler.NewNameHandler(nameRepo)
+	photoH       := handler.NewPhotoHandler(photoRepo, cardRepo)
+	categoryH    := handler.NewCategoryHandler(categoryRepo)
+	placeTypeH   := handler.NewPlaceTypeHandler(placeTypeRepo)
 
 	e := echo.New()
 	e.HideBanner = true
@@ -64,6 +68,12 @@ func main() {
 	api.POST("/cities", cityH.Create)
 	api.GET("/names", nameH.List)
 	api.POST("/names", nameH.Create)
+	api.GET("/categories", categoryH.List)
+	api.POST("/categories", categoryH.Create)
+	api.DELETE("/categories/:id", categoryH.Delete)
+	api.GET("/place-types", placeTypeH.List)
+	api.POST("/place-types", placeTypeH.Create)
+	api.DELETE("/place-types/:id", placeTypeH.Delete)
 
 	port := os.Getenv("PORT")
 	if port == "" {

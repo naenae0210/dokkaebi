@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react'
-import { CATEGORIES } from '../lib/supabase'
 import type { Category, Place, PlaceType, Card, City } from '../lib/supabase'
 import * as api from '../lib/api'
 import CitySearch from './CitySearch'
 import PlaceSearch from './PlaceSearch'
+
+const COLOR_CLASS: Record<string, string> = {
+  green:  'bg-green-100 text-green-700 border-green-200',
+  amber:  'bg-amber-100 text-amber-700 border-amber-200',
+  purple: 'bg-purple-100 text-purple-700 border-purple-200',
+  blue:   'bg-blue-100 text-blue-700 border-blue-200',
+  red:    'bg-red-100 text-red-700 border-red-200',
+  gray:   'bg-gray-100 text-gray-600 border-gray-200',
+}
 import {
   DndContext,
   closestCenter,
@@ -21,26 +29,23 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-const TYPE_COLOR: Record<PlaceType, string> = {
-  Activity:   'bg-purple-100 text-purple-700 border-purple-200',
-  Restaurant: 'bg-green-100 text-green-700 border-green-200',
-  Cafe:       'bg-amber-100 text-amber-700 border-amber-200',
-}
-
 interface Props {
   editCard?: Card | null
+  categories: Category[]
+  placeTypes: PlaceType[]
   onClose: () => void
   onCreated: () => void
 }
 
 function SortablePlace({
-  place, idx, total, onEdit, onTypeChange, onRemove
+  place, idx, total, placeTypes, onEdit, onTypeChange, onRemove
 }: {
   place: Place
   idx: number
   total: number
+  placeTypes: PlaceType[]
   onEdit: () => void
-  onTypeChange: (t: PlaceType) => void
+  onTypeChange: (t: string) => void
   onRemove: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: idx.toString() })
@@ -72,12 +77,12 @@ function SortablePlace({
       </div>
       <select
         value={place.type}
-        onChange={e => onTypeChange(e.target.value as PlaceType)}
+        onChange={e => onTypeChange(e.target.value)}
         className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:border-gray-400 text-gray-700 bg-white flex-shrink-0"
       >
-        <option value="Activity">Activity</option>
-        <option value="Restaurant">Restaurant</option>
-        <option value="Cafe">Cafe</option>
+        {placeTypes.map(pt => (
+          <option key={pt.id} value={pt.id}>{pt.label}</option>
+        ))}
       </select>
       {total > 1 && (
         <button onClick={onRemove} className="text-gray-300 hover:text-red-400 text-sm flex-shrink-0">✕</button>
@@ -86,7 +91,7 @@ function SortablePlace({
   )
 }
 
-export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
+export default function AddCardModal({ editCard, categories, placeTypes, onClose, onCreated }: Props) {
   const isEdit = !!editCard
 
   const [step, setStep] = useState<'form' | 'confirm'>('form')
@@ -94,12 +99,12 @@ export default function AddCardModal({ editCard, onClose, onCreated }: Props) {
   const [cityId, setCityId] = useState<string>(editCard?.city_id ?? '')
   const [citySearch, setCitySearch] = useState(editCard?.city?.name ?? '')
   const [showNewCity, setShowNewCity] = useState(false)
-  const [category, setCategory] = useState<Category>(editCard?.category ?? 'Beach')
+  const [category, setCategory] = useState<string>(editCard?.category ?? categories[0]?.id ?? '')
   const [title, setTitle] = useState(editCard?.title ?? '')
   const [places, setPlaces] = useState<Place[]>(
     editCard?.places?.length
       ? editCard.places
-      : [{ name: '', type: 'Activity' }]
+      : [{ name: '', type: placeTypes[0]?.id ?? 'Activity' }]
   )
   const [saving, setSaving] = useState(false)
     const sensors = useSensors(
@@ -140,7 +145,7 @@ useEffect(() => {
   }
 
   function addPlace() {
-    setPlaces(prev => [...prev, { name: '', type: 'Activity' }])
+    setPlaces(prev => [...prev, { name: '', type: placeTypes[0]?.id ?? 'Activity' }])
   }
 
   function removePlace(idx: number) {
@@ -255,7 +260,7 @@ useEffect(() => {
                   Category
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map(cat => (
+                  {categories.map(cat => (
                     <button
                       key={cat.id}
                       onClick={() => setCategory(cat.id)}
@@ -306,6 +311,7 @@ useEffect(() => {
                               place={place}
                               idx={idx}
                               total={places.length}
+                              placeTypes={placeTypes}
                               onEdit={() => setPlaces(prev =>
                                 prev.map((p, i) => i === idx ? { ...p, name: '', lat: null, lng: null } : p)
                               )}
@@ -317,6 +323,7 @@ useEffect(() => {
                           ) : (
                             <PlaceSearch
                               type={place.type}
+                              placeTypes={placeTypes}
                               onTypeChange={t => setPlaces(prev =>
                                 prev.map((p, i) => i === idx ? { ...p, type: t } : p)
                               )}
@@ -349,13 +356,13 @@ useEffect(() => {
                   <div className="text-xs text-gray-400 mb-1">📍 {selectedCity.name}</div>
                 )}
                 <div className="text-xs text-gray-400 mb-1">
-                  {CATEGORIES.find(c => c.id === category)?.emoji} {category}
+                  {categories.find(c => c.id === category)?.emoji} {category}
                 </div>
                 <div className="font-medium text-gray-900 mb-3">{title}</div>
                 <div className="flex flex-col gap-1.5">
                   {places.filter(p => p.name.trim()).map((p, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${TYPE_COLOR[p.type]}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${COLOR_CLASS[placeTypes.find(pt => pt.id === p.type)?.color ?? ''] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                         {p.type}
                       </span>
                       {p.name}

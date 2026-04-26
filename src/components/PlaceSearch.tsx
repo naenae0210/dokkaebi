@@ -8,8 +8,9 @@ interface PlaceResult {
 }
 
 interface Props {
-  type: PlaceType
-  onTypeChange: (type: PlaceType) => void
+  type: string
+  placeTypes: PlaceType[]
+  onTypeChange: (type: string) => void
   onSelect: (place: PlaceResult) => void
   onRemove?: () => void
   showRemove?: boolean
@@ -21,7 +22,7 @@ interface Prediction {
   structured_formatting: { main_text: string }
 }
 
-export default function PlaceSearch({ type, onTypeChange, onSelect, onRemove, showRemove }: Props) {
+export default function PlaceSearch({ type, placeTypes, onTypeChange, onSelect, onRemove, showRemove }: Props) {
   const [value, setValue] = useState('')
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
@@ -142,12 +143,12 @@ export default function PlaceSearch({ type, onTypeChange, onSelect, onRemove, sh
 
       <select
         value={type}
-        onChange={e => onTypeChange(e.target.value as PlaceType)}
+        onChange={e => onTypeChange(e.target.value)}
         className="text-xs border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:border-gray-400 text-gray-700 bg-white flex-shrink-0"
       >
-        <option value="Activity">Activity</option>
-        <option value="Restaurant">Restaurant</option>
-        <option value="Cafe">Cafe</option>
+        {placeTypes.map(pt => (
+          <option key={pt.id} value={pt.id}>{pt.label}</option>
+        ))}
       </select>
 
       {showRemove && (
