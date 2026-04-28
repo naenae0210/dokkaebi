@@ -19,6 +19,7 @@ type CardRepository interface {
 	Delete(ctx context.Context, id, userID string) error
 	ReplacePlaces(ctx context.Context, cardID string, places []model.PlaceInput) error
 	SetCoverPhoto(ctx context.Context, cardID, url string) error
+	UpdateSortOrders(ctx context.Context, ids []string, userID string) error
 }
 
 type CityRepository interface {

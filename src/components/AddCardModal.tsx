@@ -183,7 +183,7 @@ useEffect(() => {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
 
         {/* 헤더 */}
-        <div className="bg-[#1C1B18] px-6 py-4 flex items-center justify-between">
+        <div className="bg-[#0F172A] px-6 py-4 flex items-center justify-between">
           <h2 className="text-white font-medium text-base">
             {step === 'form'
               ? isEdit ? 'Edit Card' : 'New Card'
@@ -266,7 +266,7 @@ useEffect(() => {
                       onClick={() => setCategory(cat.id)}
                       className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                         category === cat.id
-                          ? 'bg-[#1C1B18] text-white border-[#1C1B18]'
+                          ? 'bg-[#6366F1] text-white border-[#6366F1]'
                           : 'border-gray-200 text-gray-600 hover:border-gray-400'
                       }`}
                     >
@@ -390,7 +390,7 @@ useEffect(() => {
               <button
                 onClick={() => setStep('confirm')}
                 disabled={!canProceed}
-                className="flex-1 py-2.5 text-sm bg-[#1C1B18] text-white rounded-xl hover:bg-black transition-colors disabled:opacity-40"
+                className="flex-1 py-2.5 text-sm bg-[#0F172A] text-white rounded-xl hover:bg-black transition-colors disabled:opacity-40"
               >
                 Next
               </button>
@@ -406,7 +406,7 @@ useEffect(() => {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 py-2.5 text-sm bg-[#C8773A] text-white rounded-xl hover:bg-[#b86a30] transition-colors disabled:opacity-40"
+                className="flex-1 py-2.5 text-sm bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] transition-colors disabled:opacity-40"
               >
                 {saving ? 'Saving...' : isEdit ? '✓ Save' : '✓ Create'}
               </button>

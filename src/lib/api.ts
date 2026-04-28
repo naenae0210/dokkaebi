@@ -116,6 +116,14 @@ export function deletePlaceType(id: string): Promise<void> {
   return req(`/place-types/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
+export function reorderCards(ids: string[]): Promise<void> {
+  return req('/cards/reorder', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  })
+}
+
 // Names
 export function getNames(): Promise<Name[]> {
   return req('/names')

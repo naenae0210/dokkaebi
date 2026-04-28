@@ -30,6 +30,10 @@ func (h *CardHandler) List(c echo.Context) error {
 }
 
 func (h *CardHandler) Create(c echo.Context) error {
+	userID := appmw.UserIDFromContext(c)
+	if userID == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "login required")
+	}
 	var req struct {
 		Category string  `json:"category"`
 		Title    string  `json:"title"`
@@ -38,13 +42,28 @@ func (h *CardHandler) Create(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-
-	userID := appmw.UserIDFromContext(c)
 	card, err := h.repo.Create(c.Request().Context(), req.Category, req.Title, req.CityID, userID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusCreated, card)
+}
+
+func (h *CardHandler) Reorder(c echo.Context) error {
+	userID := appmw.UserIDFromContext(c)
+	if userID == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "login required")
+	}
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+	}
+	if err := h.repo.UpdateSortOrders(c.Request().Context(), req.IDs, *userID); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (h *CardHandler) Update(c echo.Context) error {

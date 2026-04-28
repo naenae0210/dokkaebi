@@ -45,6 +45,7 @@ export interface Place {
   type: string
   lat?: number | null
   lng?: number | null
+  sort_order?: number
   created_at?: string
   updated_at?: string
 }
@@ -68,6 +69,7 @@ export interface Card {
   title: string
   cover_photo?: string | null
   visibility: 'public' | 'private'
+  sort_order?: number
   owner_nickname?: string | null
   created_at: string
   updated_at: string

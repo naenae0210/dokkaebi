@@ -44,6 +44,7 @@ type Place struct {
 	Type      string    `db:"type"       json:"type"`
 	Lat       *float64  `db:"lat"        json:"lat"`
 	Lng       *float64  `db:"lng"        json:"lng"`
+	SortOrder int       `db:"sort_order" json:"sort_order"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
@@ -66,6 +67,7 @@ type Card struct {
 	Title          string    `db:"title"           json:"title"`
 	CoverPhoto     *string   `db:"cover_photo"     json:"cover_photo"`
 	Visibility     string    `db:"visibility"      json:"visibility"`
+	SortOrder      int       `db:"sort_order"      json:"sort_order"`
 	OwnerNickname  *string   `db:"owner_nickname"  json:"owner_nickname"`
 	CreatedAt      time.Time `db:"created_at"      json:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at"      json:"updated_at"`
@@ -82,8 +84,9 @@ type Name struct {
 
 // PlaceInput is used for creating/replacing places
 type PlaceInput struct {
-	Name string   `json:"name"`
-	Type string   `json:"type"`
-	Lat  *float64 `json:"lat"`
-	Lng  *float64 `json:"lng"`
+	Name      string   `json:"name"`
+	Type      string   `json:"type"`
+	Lat       *float64 `json:"lat"`
+	Lng       *float64 `json:"lng"`
+	SortOrder int      `json:"sort_order"`
 }

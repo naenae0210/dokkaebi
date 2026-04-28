@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { CSSProperties, ChangeEvent } from 'react'
 import type { Card, Category, PlaceType } from '../lib/supabase'
 import { uploadPhoto, deleteCard, deletePhoto } from '../lib/api'
 import GalleryModal from './GalleryModal'
@@ -10,6 +11,48 @@ const COLOR_CLASS: Record<string, string> = {
   blue:   'bg-blue-100 text-blue-700',
   red:    'bg-red-100 text-red-700',
   gray:   'bg-gray-100 text-gray-600',
+}
+
+const actionBtn: CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 4,
+  fontSize: 10, fontWeight: 500,
+  padding: '3px 8px', borderRadius: 6,
+  background: '#F8FAFC', border: '1px solid #E2E8F0',
+  color: '#64748B', cursor: 'pointer', whiteSpace: 'nowrap',
+  lineHeight: 1.4,
+}
+
+const deleteConfirmBtn: CSSProperties = {
+  ...actionBtn,
+  background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444',
+}
+
+// Inline SVG icons (12 × 12)
+function CameraIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+  )
+}
+
+function EditIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+    </svg>
+  )
 }
 
 interface Props {
@@ -35,11 +78,10 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
   const photos = localPhotos
   const places = card.places ?? []
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     e.stopPropagation()
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
-    // Reset input so the same file can be re-selected after cancel
     e.target.value = ''
     setPendingFiles(files)
   }
@@ -65,122 +107,162 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
     if (localPhotos.length <= 1) setGallery(false)
   }
 
+  const firstName = card.owner_nickname?.split(' ')[0]
+
   return (
     <>
       <div
         onClick={onClick}
-        className={`px-5 py-4 border-b border-gray-100 cursor-pointer transition-all ${
+        className={`border-b cursor-pointer transition-all ${
           active
-            ? 'bg-[#FDF3E9] border-l-2 border-l-[#C8773A] pl-[18px]'
-            : 'hover:bg-gray-50'
+            ? 'bg-[#EEF2FF] border-l-2 border-l-[#6366F1] border-[#E2E8F0]'
+            : 'border-[#E2E8F0] hover:bg-slate-50'
         }`}
       >
-        {/* 헤더 */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-            {cat?.emoji} {card.category}
-          </span>
-          <span className="text-sm font-medium text-gray-900 flex-1">
-            {card.title}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'stretch' }}>
 
-          {/* 사진 버튼 */}
-          <div
-            style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}
-            onClick={e => e.stopPropagation()}
-          >
-            <label
-              style={{ fontSize: 12, color: '#9CA3AF', padding: '4px 4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              📷
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-              />
-            </label>
+          {/* ── Left column ─────────────────────────────────── */}
+          <div style={{
+            flex: 1, minWidth: 0,
+            padding: `12px 14px 10px ${active ? 12 : 14}px`,
+          }}>
 
-            {photos.length > 0 && (
-              <button
-                onClick={() => setGallery(true)}
-                style={{ fontSize: 11, color: '#9CA3AF', padding: '4px 2px', background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                {photos.length}
-              </button>
-            )}
-          </div>
-
-          {/* 수정/삭제 버튼 — 본인 카드만 */}
-          {isOwner && (
-            <>
-              <button
-                onClick={e => { e.stopPropagation(); onEdit(card) }}
-                className="text-gray-300 hover:text-blue-400 transition-colors text-sm flex-shrink-0"
-              >
-                ✎
-              </button>
-              {confirmDelete ? (
-                <span className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={handleDeleteCard}
-                    className="text-[10px] text-white bg-red-400 rounded px-1.5 py-0.5 hover:bg-red-500 transition-colors"
-                  >
-                    delete
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </span>
-              ) : (
-                <button
-                  onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
-                  className="text-gray-300 hover:text-red-400 transition-colors text-sm flex-shrink-0"
-                >
-                  🗑
-                </button>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* 도시 */}
-        {card.city && (
-          <div className="text-xs text-gray-400 mb-1">
-            📍 {card.city.name}
-          </div>
-        )}
-
-        {/* 카드 소유자 닉네임 */}
-        {card.owner_nickname && (
-          <div className="text-[10px] text-gray-300 mb-1.5">
-            by {card.owner_nickname}
-          </div>
-        )}
-
-        {/* 장소 목록 */}
-        <div className="flex flex-col gap-1">
-          {places.map((p, i) => (
-            <div
-              key={p.id}
-              className="flex items-center gap-2 cursor-pointer hover:opacity-60 transition-opacity"
-              onClick={e => { e.stopPropagation(); onPlaceClick?.(i) }}
-            >
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${COLOR_CLASS[placeTypes.find(pt => pt.id === p.type)?.color ?? ''] ?? 'bg-gray-100 text-gray-600'}`}>
-                {p.type}
+            {/* Category + Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+              <span style={{
+                fontSize: 10, fontWeight: 600,
+                padding: '2px 7px', borderRadius: 20,
+                background: '#F1F5F9', color: '#475569',
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                {cat?.emoji} {card.category}
               </span>
-              <span className="text-xs text-gray-600 flex-1">{p.name}</span>
-              <span className="text-[10px] text-gray-300">#{i + 1}</span>
+              <span style={{
+                fontSize: 13, fontWeight: 600, color: '#0F172A',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {card.title}
+              </span>
             </div>
-          ))}
+
+            {/* City */}
+            {card.city && (
+              <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>
+                📍 {card.city.name}
+              </div>
+            )}
+
+            {/* Places */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {places.map((p, i) => (
+                <div
+                  key={p.id}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                  className="hover:opacity-60 transition-opacity"
+                  onClick={e => { e.stopPropagation(); onPlaceClick?.(i) }}
+                >
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${COLOR_CLASS[placeTypes.find(pt => pt.id === p.type)?.color ?? ''] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {p.type}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom bar: action buttons + author */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginTop: 8, gap: 6,
+            }}>
+              {isOwner && (
+                <div
+                  style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Camera / upload */}
+                  <label style={actionBtn}>
+                    <CameraIcon /> Photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      style={{ display: 'none' }}
+                      onChange={handleFileChange}
+                    />
+                  </label>
+
+                  {/* Edit */}
+                  <button
+                    style={actionBtn}
+                    onClick={e => { e.stopPropagation(); onEdit(card) }}
+                  >
+                    <EditIcon /> Edit
+                  </button>
+
+                  {/* Delete */}
+                  {confirmDelete ? (
+                    <>
+                      <button style={deleteConfirmBtn} onClick={handleDeleteCard}>
+                        Delete
+                      </button>
+                      <button style={actionBtn} onClick={() => setConfirmDelete(false)}>
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      style={{ ...actionBtn, color: '#EF4444' }}
+                      onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
+                    >
+                      <TrashIcon /> Delete
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Author — pushed to the right */}
+              {firstName && (
+                <span style={{ fontSize: 10, color: '#94A3B8', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                  by {firstName}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ── Right column: cover photo ────────────────────── */}
+          {photos.length > 0 && (
+            <div
+              onClick={e => { e.stopPropagation(); setGallery(true) }}
+              style={{
+                width: '28%', minWidth: 72, maxWidth: 110,
+                flexShrink: 0, overflow: 'hidden',
+                cursor: 'pointer', position: 'relative',
+                borderLeft: '1px solid #E2E8F0',
+              }}
+            >
+              <img
+                src={photos[0].url}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+              {photos.length > 1 && (
+                <div style={{
+                  position: 'absolute', bottom: 4, right: 4,
+                  background: 'rgba(0,0,0,0.55)', color: 'white',
+                  fontSize: 9, fontWeight: 700,
+                  padding: '2px 5px', borderRadius: 10,
+                }}>
+                  +{photos.length - 1}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 사진 공개 범위 선택 */}
+      {/* Visibility picker */}
       {pendingFiles && (
         <div
           style={{
@@ -199,10 +281,10 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
             }}
             onClick={e => e.stopPropagation()}
           >
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#1C1B18', marginBottom: 6 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 6 }}>
               Who can see {pendingFiles.length > 1 ? `these ${pendingFiles.length} photos` : 'this photo'}?
             </p>
-            <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 20 }}>
+            <p style={{ fontSize: 11, color: '#94A3B8', marginBottom: 20 }}>
               You can't change this later.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -210,7 +292,7 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
                 onClick={() => uploadWithVisibility('public')}
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 10,
-                  background: '#1C1B18', color: 'white',
+                  background: '#6366F1', color: 'white',
                   border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer',
                 }}
               >
@@ -220,8 +302,8 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
                 onClick={() => uploadWithVisibility('private')}
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 10,
-                  background: '#F5F0E8', color: '#1C1B18',
-                  border: '1px solid #E0DDD8', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  background: '#F8FAFC', color: '#0F172A',
+                  border: '1px solid #E2E8F0', fontSize: 13, fontWeight: 500, cursor: 'pointer',
                 }}
               >
                 🔒 Only Me
@@ -229,7 +311,7 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
             </div>
             <button
               onClick={() => setPendingFiles(null)}
-              style={{ marginTop: 14, fontSize: 11, color: '#B0ABA6', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ marginTop: 14, fontSize: 11, color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               Cancel
             </button>

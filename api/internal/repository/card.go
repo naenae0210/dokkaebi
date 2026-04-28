@@ -23,11 +23,11 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 	var cards []model.Card
 	if err := r.db.SelectContext(ctx, &cards, `
 		SELECT c.id, c.user_id, c.city_id, c.category, c.title, c.cover_photo,
-		       c.visibility, c.created_at, c.updated_at,
+		       c.visibility, c.sort_order, c.created_at, c.updated_at,
 		       u.nickname AS owner_nickname
 		FROM cards c
 		LEFT JOIN users u ON c.user_id = u.id
-		ORDER BY c.created_at DESC
+		ORDER BY c.sort_order ASC, c.created_at DESC
 	`); err != nil {
 		return nil, err
 	}
@@ -134,10 +134,11 @@ func (r *CardRepo) Create(ctx context.Context, category, title string, cityID *s
 	c.Places = []model.Place{}
 	c.Photos = []model.Photo{}
 	err := r.db.QueryRowxContext(ctx, `
-		INSERT INTO cards (id, user_id, category, title, city_id, visibility)
-		VALUES ($1, $2, $3, $4, $5, 'public')
+		INSERT INTO cards (id, user_id, category, title, city_id, visibility, sort_order)
+		VALUES ($1, $2, $3, $4, $5, 'public',
+		        (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM cards))
 		RETURNING id, user_id, city_id, category, title, cover_photo,
-		          visibility, created_at, updated_at, NULL AS owner_nickname
+		          visibility, sort_order, created_at, updated_at, NULL AS owner_nickname
 	`, uuid.New().String(), userID, category, title, cityID).StructScan(&c)
 	return &c, err
 }
@@ -160,11 +161,11 @@ func (r *CardRepo) ReplacePlaces(ctx context.Context, cardID string, places []mo
 	if _, err := tx.ExecContext(ctx, `DELETE FROM places WHERE card_id = $1`, cardID); err != nil {
 		return err
 	}
-	for _, p := range places {
+	for i, p := range places {
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO places (id, card_id, name, type, lat, lng)
-			VALUES ($1, $2, $3, $4, $5, $6)
-		`, uuid.New().String(), cardID, p.Name, p.Type, p.Lat, p.Lng); err != nil {
+			INSERT INTO places (id, card_id, name, type, lat, lng, sort_order)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, uuid.New().String(), cardID, p.Name, p.Type, p.Lat, p.Lng, i); err != nil {
 			return err
 		}
 	}
@@ -201,4 +202,21 @@ func (r *CardRepo) SetCoverPhoto(ctx context.Context, cardID, url string) error 
 		url, cardID,
 	)
 	return err
+}
+
+func (r *CardRepo) UpdateSortOrders(ctx context.Context, ids []string, userID string) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for i, id := range ids {
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE cards SET sort_order = $1 WHERE id = $2 AND user_id = $3`,
+			i, id, userID,
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

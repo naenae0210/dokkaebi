@@ -55,3 +55,7 @@ ALTER TABLE cards
 
 ALTER TABLE photos
     ADD COLUMN IF NOT EXISTS visibility text NOT NULL DEFAULT 'public';
+
+-- sort_order for drag-to-reorder
+ALTER TABLE cards  ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+ALTER TABLE places ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
