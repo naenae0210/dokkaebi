@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react'
-import type { ReactNode } from 'react'
 import type { Card, Category, PlaceType, City } from './lib/supabase'
 import * as api from './lib/api'
 import { useAuth } from './lib/auth'
@@ -7,58 +6,8 @@ import PlanCard from './components/PlanCard'
 import AddCardModal from './components/AddCardModal'
 import MapView from './components/MapView'
 import type { MapViewHandle } from './components/MapView'
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import type { DragEndEvent } from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 
 type ViewMode = 'map' | 'list'
-
-// ── Drag-handle wrapper for list-view cards ──────────────────────────────────
-function SortableCardItem({ id, children }: { id: string; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1,
-        display: 'flex',
-        alignItems: 'stretch',
-      }}
-    >
-      <div
-        {...attributes}
-        {...listeners}
-        title="Drag to reorder"
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 18, flexShrink: 0,
-          cursor: 'grab', touchAction: 'none',
-          color: '#CBD5E1', fontSize: 12,
-          borderRight: '1px solid #F1F5F9',
-          userSelect: 'none',
-        }}
-      >
-        ⠿
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
-    </div>
-  )
-}
 
 export default function App() {
   const { user, logout } = useAuth()
@@ -79,11 +28,6 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [cardScope, setCardScope] = useState<'mine' | 'all'>('mine')
   const mapViewRef = useRef<MapViewHandle>(null)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
-  )
 
   const currentName = nicknames[nameIdx % Math.max(nicknames.length, 1)] ?? 'us'
 
@@ -129,21 +73,6 @@ export default function App() {
   const scopedCards = cardScope === 'mine' && user
     ? filtered.filter(c => c.user_id === user.id)
     : filtered
-
-  function handleCardDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const scopedSet = new Set(scopedCards.map(c => c.id))
-    const oldIdx = scopedCards.findIndex(c => c.id === active.id)
-    const newIdx = scopedCards.findIndex(c => c.id === over.id)
-    if (oldIdx === -1 || newIdx === -1) return
-    const reorderedScoped = arrayMove(scopedCards, oldIdx, newIdx)
-    // rebuild full cards array maintaining positions of non-scoped cards
-    let si = 0
-    const newCards = cards.map(c => scopedSet.has(c.id) ? reorderedScoped[si++] : c)
-    setCards(newCards)
-    api.reorderCards(reorderedScoped.map(c => c.id))
-  }
 
   // ── Map-view card list (sidebar / mobile bottom sheet) ───────────────────
   const cardList = (
@@ -201,7 +130,6 @@ export default function App() {
   )
 
   // ── List-tab view ─────────────────────────────────────────────────────────
-  const canDrag = !!user && cardScope === 'mine'
 
   const listView = (
     <div style={{ padding: '0 0 40px' }}>
@@ -258,26 +186,6 @@ export default function App() {
         <div style={{ padding: '24px 20px', fontSize: 12, color: '#94A3B8' }}>
           {cardScope === 'mine' ? "You haven't created any cards yet." : 'No cards found.'}
         </div>
-      ) : canDrag ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCardDragEnd}>
-          <SortableContext items={scopedCards.map(c => c.id)} strategy={verticalListSortingStrategy}>
-            {scopedCards.map(card => (
-              <SortableCardItem key={card.id} id={card.id}>
-                <PlanCard
-                  card={card}
-                  categories={categories}
-                  placeTypes={placeTypes}
-                  active={false}
-                  onClick={() => {}}
-                  onEdit={card => setEditCard(card)}
-                  onPhotoAdded={loadData}
-                  onDeleted={loadData}
-                  currentUserId={user?.id}
-                />
-              </SortableCardItem>
-            ))}
-          </SortableContext>
-        </DndContext>
       ) : (
         scopedCards.map(card => (
           <PlanCard
@@ -336,7 +244,7 @@ export default function App() {
                     style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
                   />
                 )}
-                <span style={{ fontSize: 11, color: '#64748B' }}>{user.nickname}</span>
+
                 <button
                   onClick={logout}
                   style={{ fontSize: 11, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', padding: 0 }}

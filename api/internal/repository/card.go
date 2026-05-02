@@ -27,7 +27,7 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 		       u.nickname AS owner_nickname
 		FROM cards c
 		LEFT JOIN users u ON c.user_id = u.id
-		ORDER BY c.sort_order ASC, c.created_at DESC
+		ORDER BY NULLIF(c.sort_order, 0) ASC NULLS LAST, c.created_at DESC
 	`); err != nil {
 		return nil, err
 	}
