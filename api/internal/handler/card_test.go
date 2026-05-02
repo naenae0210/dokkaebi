@@ -21,6 +21,11 @@ func newEcho() *echo.Echo {
 	return e
 }
 
+func withUser(c echo.Context, userID string) echo.Context {
+	c.Set("userID", userID)
+	return c
+}
+
 func TestCardHandler_List_Success(t *testing.T) {
 	now := time.Now()
 	mock := &mockCardRepo{
@@ -78,7 +83,7 @@ func TestCardHandler_Create_Success(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/cards", strings.NewReader(body))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+	c := withUser(e.NewContext(req, rec), "user-1")
 
 	h := handler.NewCardHandler(mock)
 	require.NoError(t, h.Create(c))
@@ -100,6 +105,7 @@ func TestCardHandler_Create_InvalidBody(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
+	c = withUser(c, "user-1")
 	h := handler.NewCardHandler(mock)
 	err := h.Create(c)
 

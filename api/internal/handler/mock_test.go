@@ -17,6 +17,7 @@ type mockCardRepo struct {
 	createResult *model.Card
 	createErr    error
 	updateErr    error
+	deleteErr    error
 	replacesErr  error
 	coverErr     error
 }
@@ -32,6 +33,12 @@ func (m *mockCardRepo) Update(_ context.Context, id, category, title string, cit
 }
 func (m *mockCardRepo) ReplacePlaces(_ context.Context, cardID string, places []model.PlaceInput) error {
 	return m.replacesErr
+}
+func (m *mockCardRepo) Delete(_ context.Context, id, userID string) error {
+	return m.deleteErr
+}
+func (m *mockCardRepo) UpdateSortOrders(_ context.Context, ids []string, userID string) error {
+	return nil
 }
 func (m *mockCardRepo) SetCoverPhoto(_ context.Context, cardID, url string) error {
 	return m.coverErr
