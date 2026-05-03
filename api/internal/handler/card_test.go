@@ -126,6 +126,7 @@ func TestCardHandler_Update_Success(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues("card-1")
 
+	c = withUser(c, "user-1")
 	h := handler.NewCardHandler(mock)
 	require.NoError(t, h.Update(c))
 
@@ -144,12 +145,13 @@ func TestCardHandler_Update_DBError(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues("card-1")
 
+	c = withUser(c, "user-1")
 	h := handler.NewCardHandler(mock)
 	err := h.Update(c)
 
 	var he *echo.HTTPError
 	require.ErrorAs(t, err, &he)
-	assert.Equal(t, http.StatusInternalServerError, he.Code)
+	assert.Equal(t, http.StatusForbidden, he.Code)
 }
 
 func TestCardHandler_ReplacePlaces_Success(t *testing.T) {
@@ -164,6 +166,7 @@ func TestCardHandler_ReplacePlaces_Success(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues("card-1")
 
+	c = withUser(c, "user-1")
 	h := handler.NewCardHandler(mock)
 	require.NoError(t, h.ReplacePlaces(c))
 

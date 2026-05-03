@@ -20,6 +20,7 @@ type mockCardRepo struct {
 	deleteErr    error
 	replacesErr  error
 	coverErr     error
+	ownerResult  bool
 }
 
 func (m *mockCardRepo) List(_ context.Context, _ *string) ([]model.Card, error) {
@@ -28,19 +29,22 @@ func (m *mockCardRepo) List(_ context.Context, _ *string) ([]model.Card, error) 
 func (m *mockCardRepo) Create(_ context.Context, category, title string, cityID *string, userID *string) (*model.Card, error) {
 	return m.createResult, m.createErr
 }
-func (m *mockCardRepo) Update(_ context.Context, id, category, title string, cityID *string) error {
+func (m *mockCardRepo) Update(_ context.Context, id, userID, category, title string, cityID *string) error {
 	return m.updateErr
 }
-func (m *mockCardRepo) ReplacePlaces(_ context.Context, cardID string, places []model.PlaceInput) error {
+func (m *mockCardRepo) ReplacePlaces(_ context.Context, cardID, userID string, places []model.PlaceInput) error {
 	return m.replacesErr
 }
 func (m *mockCardRepo) Delete(_ context.Context, id, userID string) error {
 	return m.deleteErr
 }
+func (m *mockCardRepo) VerifyOwner(_ context.Context, cardID, userID string) (bool, error) {
+	return m.ownerResult, nil
+}
 func (m *mockCardRepo) UpdateSortOrders(_ context.Context, ids []string, userID string) error {
 	return nil
 }
-func (m *mockCardRepo) SetCoverPhoto(_ context.Context, cardID, url string) error {
+func (m *mockCardRepo) SetCoverPhoto(_ context.Context, cardID, photoID string) error {
 	return m.coverErr
 }
 
@@ -86,8 +90,13 @@ func (m *mockNameRepo) Create(_ context.Context, name string) (*model.Name, erro
 type mockPhotoRepo struct {
 	createResult *model.Photo
 	createErr    error
+	deleteURL    string
+	deleteErr    error
 }
 
-func (m *mockPhotoRepo) Create(_ context.Context, cardID, url string, order int, visibility string) (*model.Photo, error) {
+func (m *mockPhotoRepo) Create(_ context.Context, cardID, uploaderID, url string, order int, visibility string) (*model.Photo, error) {
 	return m.createResult, m.createErr
+}
+func (m *mockPhotoRepo) DeleteByUploader(_ context.Context, photoID, uploaderID string) (string, error) {
+	return m.deleteURL, m.deleteErr
 }

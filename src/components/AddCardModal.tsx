@@ -179,11 +179,11 @@ useEffect(() => {
   const canProceed = title.trim()
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-end sm:items-center justify-center sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-xl flex flex-col" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
 
         {/* 헤더 */}
-        <div className="bg-[#0F172A] px-6 py-4 flex items-center justify-between">
+        <div className="bg-[#0F172A] px-6 py-4 flex items-center justify-between flex-shrink-0">
           <h2 className="text-white font-medium text-base">
             {step === 'form'
               ? isEdit ? 'Edit Card' : 'New Card'
@@ -193,7 +193,7 @@ useEffect(() => {
           <button onClick={onClose} className="text-white/50 hover:text-white text-lg">✕</button>
         </div>
 
-        <div className="p-6 max-h-[75vh] overflow-y-auto">
+        <div className="p-6 overflow-y-auto flex-1">
           {step === 'form' ? (
             <div className="flex flex-col gap-5">
 
@@ -378,7 +378,7 @@ useEffect(() => {
         </div>
 
         {/* 푸터 */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+        <div className="px-6 py-4 border-t border-gray-100 flex gap-2 flex-shrink-0">
           {step === 'form' ? (
             <>
               <button

@@ -4,7 +4,8 @@
       "Bash(grep -E '\\\\.\\(yml|yaml|env|dockerfile|Dockerfile|toml|json\\)$')",
       "Bash(npm run *)",
       "Bash(go build *)",
-      "Bash(go test *)"
+      "Bash(go test *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
