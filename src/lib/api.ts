@@ -1,4 +1,4 @@
-import type { Card, City, Name, User, Category, PlaceType } from './supabase'
+import type { Card, City, Name, User, Category, PlaceType, Photo } from './supabase'
 
 const BASE = '/api'
 
@@ -71,7 +71,7 @@ export function uploadPhoto(
   file: File,
   order: number,
   visibility: 'public' | 'private' = 'public',
-): Promise<{ url: string }> {
+): Promise<Photo> {
   const form = new FormData()
   form.append('file', file)
   form.append('order', String(order))

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
-import type { Card, Category, PlaceType, City } from './lib/supabase'
-import * as api from './lib/api'
+import type { Card } from './lib/supabase'
 import { useAuth } from './lib/auth'
+import { useAppData } from './hooks/useAppData'
 import PlanCard from './components/PlanCard'
 import AddCardModal from './components/AddCardModal'
 import MapView from './components/MapView'
@@ -11,12 +11,8 @@ type ViewMode = 'map' | 'list'
 
 export default function App() {
   const { user, logout, deleteAccount } = useAuth()
+  const { cards, cities, nicknames, categories, placeTypes, reload } = useAppData()
   const [showDeleteMenu, setShowDeleteMenu] = useState(false)
-  const [cards, setCards] = useState<Card[]>([])
-  const [cities, setCities] = useState<City[]>([])
-  const [nicknames, setNicknames] = useState<string[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [placeTypes, setPlaceTypes] = useState<PlaceType[]>([])
   const [nameIdx, setNameIdx] = useState(0)
   const [animating, setAnimating] = useState(false)
   const [cityFilter, setCityFilter] = useState<string>('all')
@@ -31,23 +27,6 @@ export default function App() {
   const mapViewRef = useRef<MapViewHandle>(null)
 
   const currentName = nicknames[nameIdx % Math.max(nicknames.length, 1)] ?? 'us'
-
-  async function loadData() {
-    const [cardRes, cityRes, nicknameRes, catRes, ptRes] = await Promise.allSettled([
-      api.getCards(),
-      api.getCities(),
-      api.getNicknames(),
-      api.getCategories(),
-      api.getPlaceTypes(),
-    ])
-    if (cardRes.status === 'fulfilled') setCards(cardRes.value)
-    if (cityRes.status === 'fulfilled') setCities(cityRes.value)
-    if (nicknameRes.status === 'fulfilled') setNicknames(nicknameRes.value)
-    if (catRes.status === 'fulfilled') setCategories(catRes.value)
-    if (ptRes.status === 'fulfilled') setPlaceTypes(ptRes.value)
-  }
-
-  useEffect(() => { loadData() }, [])
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768)
@@ -120,8 +99,8 @@ export default function App() {
             active={activeCard?.id === card.id}
             onClick={() => setActiveCard(card)}
             onEdit={card => setEditCard(card)}
-            onPhotoAdded={loadData}
-            onDeleted={loadData}
+            onPhotoAdded={reload}
+            onDeleted={reload}
             onPlaceClick={idx => mapViewRef.current?.focusMarker(idx)}
             currentUserId={user?.id}
           />
@@ -197,8 +176,8 @@ export default function App() {
             active={false}
             onClick={() => {}}
             onEdit={card => setEditCard(card)}
-            onPhotoAdded={loadData}
-            onDeleted={loadData}
+            onPhotoAdded={reload}
+            onDeleted={reload}
             currentUserId={user?.id}
           />
         ))
@@ -268,7 +247,11 @@ export default function App() {
                       onClick={async () => {
                         setShowDeleteMenu(false)
                         if (!window.confirm('Delete your account? Your cards will remain but your photos will be removed.')) return
-                        await deleteAccount()
+                        try {
+                          await deleteAccount()
+                        } catch {
+                          alert('Failed to delete account. Please try again.')
+                        }
                       }}
                       style={{
                         position: 'absolute', top: '100%', right: 0,
@@ -452,7 +435,7 @@ export default function App() {
           categories={categories}
           placeTypes={placeTypes}
           onClose={() => { setShowModal(false); setEditCard(null) }}
-          onCreated={() => { loadData(); setShowModal(false); setEditCard(null) }}
+          onCreated={() => { reload(); setShowModal(false); setEditCard(null) }}
         />
       )}
     </div>

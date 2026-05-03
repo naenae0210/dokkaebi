@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { City } from '../lib/supabase'
 import { findOrCreateCity } from '../lib/api'
+import { usePlacesAutocomplete } from '../hooks/usePlacesAutocomplete'
+import type { Prediction } from '../hooks/usePlacesAutocomplete'
 
 interface Props {
   value: string
@@ -9,33 +11,10 @@ interface Props {
   placeholder?: string
 }
 
-interface Prediction {
-  place_id: string
-  description: string
-}
-
 export default function CitySearch({ value, onChange, onSelect, placeholder }: Props) {
-  const [predictions, setPredictions] = useState<Prediction[]>([])
-  const [showDropdown, setShowDropdown] = useState(false)
-  const autocompleteService = useRef<any>(null)
-  const placesService = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { predictions, showDropdown, setShowDropdown, search, getDetails } = usePlacesAutocomplete(['(cities)'])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const google = (window as any).google
-      if (!google?.maps?.places) return
-      clearInterval(interval)
-      autocompleteService.current = new google.maps.places.AutocompleteService()
-      placesService.current = new google.maps.places.PlacesService(
-        document.createElement('div')
-      )
-    }, 100)
-    return () => clearInterval(interval)
-  }, [])
-
-  // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -44,48 +23,20 @@ export default function CitySearch({ value, onChange, onSelect, placeholder }: P
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [setShowDropdown])
 
   function handleInput(val: string) {
     onChange(val)
-    if (!val.trim()) { setPredictions([]); setShowDropdown(false); return }
-
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      if (!autocompleteService.current) return
-      autocompleteService.current.getPlacePredictions(
-        { input: val, types: ['(cities)'] },
-        (results: any[], status: string) => {
-          if (status === 'OK' && results) {
-            setPredictions(results.map(r => ({
-              place_id: r.place_id,
-              description: r.description,
-            })))
-            setShowDropdown(true)
-          } else {
-            setPredictions([])
-            setShowDropdown(false)
-          }
-        }
-      )
-    }, 300)
+    search(val)
   }
 
   async function handleSelect(prediction: Prediction) {
     setShowDropdown(false)
     const cityName = prediction.description.split(',')[0].trim()
     onChange(cityName)
-
-    // 좌표 가져오기
-    placesService.current?.getDetails(
-      { placeId: prediction.place_id, fields: ['geometry'] },
-      async (place: any, status: string) => {
-        const lat = status === 'OK' ? place?.geometry?.location?.lat() ?? null : null
-        const lng = status === 'OK' ? place?.geometry?.location?.lng() ?? null : null
-        const city = await findOrCreateCity(cityName, lat, lng)
-        onSelect(city)
-      }
-    )
+    const { lat, lng } = await getDetails(prediction.place_id, ['geometry'])
+    const city = await findOrCreateCity(cityName, lat, lng)
+    onSelect(city)
   }
 
   return (

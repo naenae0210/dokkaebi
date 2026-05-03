@@ -50,13 +50,14 @@ type Place struct {
 }
 
 type Photo struct {
-	ID         string    `db:"id"         json:"id"`
-	CardID     *string   `db:"card_id"    json:"card_id"`
-	URL        string    `db:"url"        json:"url"`
-	Order      int       `db:"order"      json:"order"`
-	Visibility string    `db:"visibility" json:"visibility"`
-	CreatedAt  time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
+	ID         string    `db:"id"          json:"id"`
+	CardID     *string   `db:"card_id"     json:"card_id"`
+	UploaderID *string   `db:"uploader_id" json:"uploader_id"`
+	URL        string    `db:"url"         json:"url"`
+	Order      int       `db:"order"       json:"order"`
+	Visibility string    `db:"visibility"  json:"visibility"`
+	CreatedAt  time.Time `db:"created_at"  json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at"  json:"updated_at"`
 }
 
 type Card struct {
@@ -65,7 +66,7 @@ type Card struct {
 	CityID         *string   `db:"city_id"         json:"city_id"`
 	Category       string    `db:"category"        json:"category"`
 	Title          string    `db:"title"           json:"title"`
-	CoverPhoto     *string   `db:"cover_photo"     json:"cover_photo"`
+	CoverPhotoID   *string   `db:"cover_photo_id"  json:"cover_photo_id"`
 	Visibility     string    `db:"visibility"      json:"visibility"`
 	SortOrder      int       `db:"sort_order"      json:"sort_order"`
 	OwnerNickname  *string   `db:"owner_nickname"  json:"owner_nickname"`

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { CSSProperties, ChangeEvent } from 'react'
 import type { Card, Category, PlaceType } from '../lib/supabase'
 import { uploadPhoto, deleteCard, deletePhoto } from '../lib/api'
@@ -74,6 +74,11 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [localPhotos, setLocalPhotos] = useState(card.photos ?? [])
   const isOwner = !!currentUserId && card.user_id === currentUserId
+
+  // Sync with server data when parent reloads (e.g. after another card changes)
+  const photosSig = (card.photos ?? []).map(p => p.id).join(',')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setLocalPhotos(card.photos ?? []) }, [photosSig])
   const cat = categories.find(c => c.id === card.category)
   const photos = localPhotos
   const places = card.places ?? []
@@ -91,7 +96,9 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
     const files = pendingFiles
     setPendingFiles(null)
     for (let i = 0; i < files.length; i++) {
-      await uploadPhoto(card.id, files[i], photos.length + i, visibility)
+      const photo = await uploadPhoto(card.id, files[i], localPhotos.length + i, visibility)
+      // Optimistic update: new photo goes after cover (index 0), newest-first
+      setLocalPhotos(prev => prev.length === 0 ? [photo] : [prev[0], photo, ...prev.slice(1)])
     }
     onPhotoAdded()
   }
@@ -231,30 +238,52 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
             </div>
           </div>
 
-          {/* ── Right column: cover photo ────────────────────── */}
+          {/* ── Right column: photo grid ────────────────────── */}
           {photos.length > 0 && (
             <div
               onClick={e => { e.stopPropagation(); setGallery(true) }}
               style={{
-                width: '28%', minWidth: 72, maxWidth: 110,
+                width: photos.length === 1 ? '28%' : '35%',
+                minWidth: 72,
+                maxWidth: photos.length === 1 ? 110 : 140,
                 flexShrink: 0, overflow: 'hidden',
-                cursor: 'pointer', position: 'relative',
+                cursor: 'pointer',
                 borderLeft: '1px solid #E2E8F0',
               }}
             >
-              <img
-                src={photos[0].url}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
-              {photos.length > 1 && (
+              {photos.length === 1 ? (
+                <img
+                  src={photos[0].url}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
                 <div style={{
-                  position: 'absolute', bottom: 4, right: 4,
-                  background: 'rgba(0,0,0,0.55)', color: 'white',
-                  fontSize: 9, fontWeight: 700,
-                  padding: '2px 5px', borderRadius: 10,
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gridTemplateRows: photos.length === 2 ? '1fr' : '1fr 1fr',
+                  gap: 1,
+                  height: '100%',
                 }}>
-                  +{photos.length - 1}
+                  {photos.slice(0, 4).map((p, i) => (
+                    <div key={p.id} style={{ position: 'relative', overflow: 'hidden' }}>
+                      <img
+                        src={p.url}
+                        alt=""
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      {i === 3 && photos.length > 4 && (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'rgba(0,0,0,0.55)', color: 'white',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700,
+                        }}>
+                          +{photos.length - 4}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -323,7 +352,7 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
         <GalleryModal
           photos={photos}
           cardId={card.id}
-          canDelete={isOwner}
+          currentUserId={currentUserId}
           onDeletePhoto={handleDeletePhoto}
           onClose={() => setGallery(false)}
         />

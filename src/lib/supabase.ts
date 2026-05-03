@@ -51,12 +51,13 @@ export interface Place {
 }
 
 export interface Photo {
-  id?: string
+  id: string
   card_id?: string
+  uploader_id?: string | null
   url: string
   order: number
   visibility: 'public' | 'private'
-  created_at?: string
+  created_at: string
   updated_at?: string
 }
 
@@ -67,7 +68,7 @@ export interface Card {
   city?: City
   category: string
   title: string
-  cover_photo?: string | null
+  cover_photo_id?: string | null
   visibility: 'public' | 'private'
   sort_order?: number
   owner_nickname?: string | null

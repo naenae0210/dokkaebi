@@ -22,7 +22,7 @@ func NewCardRepo(db *sqlx.DB) *CardRepo {
 func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Card, error) {
 	var cards []model.Card
 	if err := r.db.SelectContext(ctx, &cards, `
-		SELECT c.id, c.user_id, c.city_id, c.category, c.title, c.cover_photo,
+		SELECT c.id, c.user_id, c.city_id, c.category, c.title, c.cover_photo_id,
 		       c.visibility, c.sort_order, c.created_at, c.updated_at,
 		       u.nickname AS owner_nickname
 		FROM cards c
@@ -35,7 +35,6 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 		return []model.Card{}, nil
 	}
 
-	// collect IDs
 	cardIDs := make([]string, len(cards))
 	cityIDSet := map[string]struct{}{}
 	for i, c := range cards {
@@ -45,7 +44,6 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 		}
 	}
 
-	// bulk load cities
 	if len(cityIDSet) > 0 {
 		cityIDs := make([]string, 0, len(cityIDSet))
 		for id := range cityIDSet {
@@ -72,10 +70,9 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 		}
 	}
 
-	// bulk load places
 	var places []model.Place
 	if err := r.db.SelectContext(ctx, &places,
-		`SELECT * FROM places WHERE card_id = ANY($1)`,
+		`SELECT * FROM places WHERE card_id = ANY($1) ORDER BY sort_order`,
 		pq.Array(cardIDs),
 	); err != nil {
 		return nil, err
@@ -91,7 +88,7 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 			JOIN cards c ON p.card_id = c.id
 			WHERE p.card_id = ANY($1)
 			  AND (p.visibility = 'public' OR c.user_id = $2)
-			ORDER BY CASE WHEN p.url = c.cover_photo THEN 0 ELSE 1 END, p.created_at DESC
+			ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
 		`, pq.Array(cardIDs), *currentUserID)
 	} else {
 		err = r.db.SelectContext(ctx, &photos, `
@@ -99,14 +96,13 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 			FROM photos p
 			JOIN cards c ON p.card_id = c.id
 			WHERE p.card_id = ANY($1) AND p.visibility = 'public'
-			ORDER BY CASE WHEN p.url = c.cover_photo THEN 0 ELSE 1 END, p.created_at DESC
+			ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
 		`, pq.Array(cardIDs))
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	// assemble
 	cardMap := make(map[string]*model.Card, len(cards))
 	for i := range cards {
 		cards[i].Places = []model.Place{}
@@ -139,26 +135,42 @@ func (r *CardRepo) Create(ctx context.Context, category, title string, cityID *s
 		INSERT INTO cards (id, user_id, category, title, city_id, visibility, sort_order)
 		VALUES ($1, $2, $3, $4, $5, 'public',
 		        (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM cards))
-		RETURNING id, user_id, city_id, category, title, cover_photo,
+		RETURNING id, user_id, city_id, category, title, cover_photo_id,
 		          visibility, sort_order, created_at, updated_at, NULL AS owner_nickname
 	`, uuid.New().String(), userID, category, title, cityID).StructScan(&c)
 	return &c, err
 }
 
-func (r *CardRepo) Update(ctx context.Context, id, category, title string, cityID *string) error {
-	_, err := r.db.ExecContext(ctx, `
+func (r *CardRepo) Update(ctx context.Context, id, userID, category, title string, cityID *string) error {
+	result, err := r.db.ExecContext(ctx, `
 		UPDATE cards SET category = $1, title = $2, city_id = $3, updated_at = now()
-		WHERE id = $4
-	`, category, title, cityID, id)
-	return err
+		WHERE id = $4 AND user_id = $5
+	`, category, title, cityID, id, userID)
+	if err != nil {
+		return err
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		return fmt.Errorf("not found or not owner")
+	}
+	return nil
 }
 
-func (r *CardRepo) ReplacePlaces(ctx context.Context, cardID string, places []model.PlaceInput) error {
+func (r *CardRepo) ReplacePlaces(ctx context.Context, cardID, userID string, places []model.PlaceInput) error {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+
+	var count int
+	if err := tx.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM cards WHERE id = $1 AND user_id = $2`, cardID, userID,
+	).Scan(&count); err != nil {
+		return err
+	}
+	if count == 0 {
+		return fmt.Errorf("not found or not owner")
+	}
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM places WHERE card_id = $1`, cardID); err != nil {
 		return err
@@ -198,10 +210,18 @@ func (r *CardRepo) Delete(ctx context.Context, id, userID string) error {
 	return tx.Commit()
 }
 
-func (r *CardRepo) SetCoverPhoto(ctx context.Context, cardID, url string) error {
+func (r *CardRepo) VerifyOwner(ctx context.Context, cardID, userID string) (bool, error) {
+	var count int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM cards WHERE id = $1 AND user_id = $2`, cardID, userID,
+	).Scan(&count)
+	return count > 0, err
+}
+
+func (r *CardRepo) SetCoverPhoto(ctx context.Context, cardID, photoID string) error {
 	_, err := r.db.ExecContext(ctx,
-		`UPDATE cards SET cover_photo = $1 WHERE id = $2 AND cover_photo IS NULL`,
-		url, cardID,
+		`UPDATE cards SET cover_photo_id = $1 WHERE id = $2 AND cover_photo_id IS NULL`,
+		photoID, cardID,
 	)
 	return err
 }

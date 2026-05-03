@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PlaceType } from '../lib/supabase'
+import { usePlacesAutocomplete } from '../hooks/usePlacesAutocomplete'
+import type { Prediction } from '../hooks/usePlacesAutocomplete'
 
 interface PlaceResult {
   name: string
@@ -16,33 +18,10 @@ interface Props {
   showRemove?: boolean
 }
 
-interface Prediction {
-  place_id: string
-  description: string
-  structured_formatting: { main_text: string }
-}
-
 export default function PlaceSearch({ type, placeTypes, onTypeChange, onSelect, onRemove, showRemove }: Props) {
   const [value, setValue] = useState('')
-  const [predictions, setPredictions] = useState<Prediction[]>([])
-  const [showDropdown, setShowDropdown] = useState(false)
-  const autocompleteService = useRef<any>(null)
-  const placesService = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const google = (window as any).google
-      if (!google?.maps?.places) return
-      clearInterval(interval)
-      autocompleteService.current = new google.maps.places.AutocompleteService()
-      placesService.current = new google.maps.places.PlacesService(
-        document.createElement('div')
-      )
-    }, 100)
-    return () => clearInterval(interval)
-  }, [])
+  const { predictions, showDropdown, setShowDropdown, search, getDetails } = usePlacesAutocomplete(['establishment', 'geocode'])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -52,47 +31,19 @@ export default function PlaceSearch({ type, placeTypes, onTypeChange, onSelect, 
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [setShowDropdown])
 
   function handleInput(val: string) {
     setValue(val)
-    if (!val.trim()) { setPredictions([]); setShowDropdown(false); return }
-
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      if (!autocompleteService.current) return
-      autocompleteService.current.getPlacePredictions(
-        { input: val, types: ['establishment', 'geocode'] },
-        (results: any[], status: string) => {
-          if (status === 'OK' && results) {
-            setPredictions(results.slice(0, 5).map(r => ({
-              place_id: r.place_id,
-              description: r.description,
-              structured_formatting: r.structured_formatting,
-            })))
-            setShowDropdown(true)
-          } else {
-            setPredictions([])
-            setShowDropdown(false)
-          }
-        }
-      )
-    }, 300)
+    search(val, 5)
   }
 
-  function handleSelect(prediction: Prediction) {
+  async function handleSelect(prediction: Prediction) {
     setShowDropdown(false)
     const name = prediction.structured_formatting?.main_text || prediction.description.split(',')[0].trim()
     setValue(name)
-
-    placesService.current?.getDetails(
-      { placeId: prediction.place_id, fields: ['geometry', 'name'] },
-      (place: any, status: string) => {
-        const lat = status === 'OK' ? place?.geometry?.location?.lat() ?? null : null
-        const lng = status === 'OK' ? place?.geometry?.location?.lng() ?? null : null
-        onSelect({ name, lat, lng })
-      }
-    )
+    const { lat, lng } = await getDetails(prediction.place_id)
+    onSelect({ name, lat, lng })
   }
 
   return (
@@ -129,12 +80,8 @@ export default function PlaceSearch({ type, placeTypes, onTypeChange, onSelect, 
                 onMouseEnter={e => (e.currentTarget.style.background = '#F9FAFB')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'none')}
               >
-                <div style={{ fontWeight: 500, fontSize: 13 }}>
-                  {p.structured_formatting?.main_text}
-                </div>
-                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>
-                  {p.description}
-                </div>
+                <div style={{ fontWeight: 500, fontSize: 13 }}>{p.structured_formatting?.main_text}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 1 }}>{p.description}</div>
               </button>
             ))}
           </div>

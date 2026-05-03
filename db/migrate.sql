@@ -59,3 +59,14 @@ ALTER TABLE photos
 -- sort_order for drag-to-reorder
 ALTER TABLE cards  ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
 ALTER TABLE places ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+
+-- cover_photo_id: FK with ON DELETE SET NULL replaces plain text cover_photo URL.
+-- Automatically clears the reference when the cover photo is deleted.
+-- uploader_id: track who uploaded each photo so only they can delete it
+ALTER TABLE photos ADD COLUMN IF NOT EXISTS uploader_id UUID REFERENCES users(id) ON DELETE SET NULL;
+
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS cover_photo_id UUID REFERENCES photos(id) ON DELETE SET NULL;
+UPDATE cards c SET cover_photo_id = (
+  SELECT p.id FROM photos p WHERE p.url = c.cover_photo AND p.card_id = c.id LIMIT 1
+) WHERE c.cover_photo IS NOT NULL;
+ALTER TABLE cards DROP COLUMN IF EXISTS cover_photo;

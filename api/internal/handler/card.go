@@ -68,6 +68,10 @@ func (h *CardHandler) Reorder(c echo.Context) error {
 
 func (h *CardHandler) Update(c echo.Context) error {
 	id := c.Param("id")
+	userID := appmw.UserIDFromContext(c)
+	if userID == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "login required")
+	}
 	var req struct {
 		Category string  `json:"category"`
 		Title    string  `json:"title"`
@@ -76,9 +80,8 @@ func (h *CardHandler) Update(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-
-	if err := h.repo.Update(c.Request().Context(), id, req.Category, req.Title, req.CityID); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	if err := h.repo.Update(c.Request().Context(), id, *userID, req.Category, req.Title, req.CityID); err != nil {
+		return echo.NewHTTPError(http.StatusForbidden, "not found or not owner")
 	}
 	return c.NoContent(http.StatusNoContent)
 }
@@ -98,14 +101,16 @@ func (h *CardHandler) Delete(c echo.Context) error {
 
 func (h *CardHandler) ReplacePlaces(c echo.Context) error {
 	cardID := c.Param("id")
-
+	userID := appmw.UserIDFromContext(c)
+	if userID == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "login required")
+	}
 	var places []model.PlaceInput
 	if err := c.Bind(&places); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-
-	if err := h.repo.ReplacePlaces(c.Request().Context(), cardID, places); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	if err := h.repo.ReplacePlaces(c.Request().Context(), cardID, *userID, places); err != nil {
+		return echo.NewHTTPError(http.StatusForbidden, "not found or not owner")
 	}
 	return c.NoContent(http.StatusNoContent)
 }

@@ -4,16 +4,17 @@ import type { Photo } from '../lib/supabase'
 interface Props {
   photos: Photo[]
   cardId: string
-  canDelete: boolean
+  currentUserId?: string
   onDeletePhoto: (photoId: string) => void
   onClose: () => void
 }
 
-export default function GalleryModal({ photos, canDelete, onDeletePhoto, onClose }: Props) {
+export default function GalleryModal({ photos, currentUserId, onDeletePhoto, onClose }: Props) {
   const [idx, setIdx] = useState(0)
   const [confirming, setConfirming] = useState(false)
 
   const current = photos[idx]
+  const canDelete = !!currentUserId && current?.uploader_id === currentUserId
 
   function handleDelete() {
     if (!current?.id) return
@@ -34,7 +35,6 @@ export default function GalleryModal({ photos, canDelete, onDeletePhoto, onClose
           className="w-full max-h-[70vh] object-contain rounded-xl"
         />
 
-        {/* 닫기 */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-white bg-black/50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70 transition-colors"
@@ -42,7 +42,6 @@ export default function GalleryModal({ photos, canDelete, onDeletePhoto, onClose
           ✕
         </button>
 
-        {/* 삭제 버튼 */}
         {canDelete && (
           <div className="absolute top-3 left-3">
             {confirming ? (
@@ -71,7 +70,6 @@ export default function GalleryModal({ photos, canDelete, onDeletePhoto, onClose
           </div>
         )}
 
-        {/* 여러 장일 때만 네비게이션 표시 */}
         {photos.length > 1 && (
           <>
             <button
@@ -87,15 +85,12 @@ export default function GalleryModal({ photos, canDelete, onDeletePhoto, onClose
               ›
             </button>
 
-            {/* 하단 점 네비게이션 */}
             <div className="flex justify-center gap-1.5 mt-3">
               {photos.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => { setIdx(i); setConfirming(false) }}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    i === idx ? 'bg-white' : 'bg-white/40'
-                  }`}
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${i === idx ? 'bg-white' : 'bg-white/40'}`}
                 />
               ))}
             </div>
