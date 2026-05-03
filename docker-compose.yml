@@ -7,6 +7,12 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - uploads:/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/auth/nicknames"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   web:
     build:
@@ -23,7 +29,8 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot:ro
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   uploads:

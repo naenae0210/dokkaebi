@@ -5,7 +5,7 @@ RUN npm ci
 COPY . .
 ARG VITE_GOOGLE_MAPS_KEY
 ENV VITE_GOOGLE_MAPS_KEY=$VITE_GOOGLE_MAPS_KEY
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=512" npm run build
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html

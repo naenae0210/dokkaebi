@@ -18,17 +18,25 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           command_timeout: 30m
           script: |
+            set -e
             cd ~/dokkaebi
 
-            # 최신 코드 받기 (VM 로컬 커밋 무시하고 origin/main으로 강제 맞춤)
+            # 최신 코드 받기
             git fetch origin
             git reset --hard origin/main
 
             # .env는 VM에서 직접 관리 — 배포 시 건드리지 않음
 
-            # 빌드 후 재시작 (다운타임 최소화)
-            docker compose pull
-            docker compose up -d --build
+            # api, web 순차 빌드 (동시 빌드 시 1GB RAM 서버 OOM 발생)
+            docker compose build api
+            docker compose build web
+
+            # 컨테이너 재시작
+            docker compose up -d
+
+            # 서비스 기동 대기 후 헬스체크
+            sleep 8
+            curl -sf http://localhost/api/auth/nicknames > /dev/null
 
             # 오래된 이미지 정리
             docker image prune -f
