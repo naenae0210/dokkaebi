@@ -10,7 +10,8 @@ import type { MapViewHandle } from './components/MapView'
 type ViewMode = 'map' | 'list'
 
 export default function App() {
-  const { user, logout } = useAuth()
+  const { user, logout, deleteAccount } = useAuth()
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false)
   const [cards, setCards] = useState<Card[]>([])
   const [cities, setCities] = useState<City[]>([])
   const [nicknames, setNicknames] = useState<string[]>([])
@@ -251,6 +252,38 @@ export default function App() {
                 >
                   logout
                 </button>
+
+                <div
+                  style={{ position: 'relative' }}
+                  onMouseEnter={() => setShowDeleteMenu(true)}
+                  onMouseLeave={() => setShowDeleteMenu(false)}
+                >
+                  <button
+                    style={{ fontSize: 13, color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
+                  >
+                    +
+                  </button>
+                  {showDeleteMenu && (
+                    <button
+                      onClick={async () => {
+                        setShowDeleteMenu(false)
+                        if (!window.confirm('Delete your account? Your cards will remain but your photos will be removed.')) return
+                        await deleteAccount()
+                      }}
+                      style={{
+                        position: 'absolute', top: '100%', right: 0,
+                        marginTop: 4, whiteSpace: 'nowrap',
+                        fontSize: 11, color: '#EF4444',
+                        background: '#1E293B', border: '1px solid rgba(239,68,68,0.3)',
+                        borderRadius: 6, padding: '4px 10px',
+                        cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase',
+                        zIndex: 200,
+                      }}
+                    >
+                      delete my account
+                    </button>
+                  )}
+                </div>
               </>
             ) : (
               <a

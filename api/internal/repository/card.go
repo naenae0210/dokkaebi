@@ -91,13 +91,15 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 			JOIN cards c ON p.card_id = c.id
 			WHERE p.card_id = ANY($1)
 			  AND (p.visibility = 'public' OR c.user_id = $2)
-			ORDER BY p."order"
+			ORDER BY CASE WHEN p.url = c.cover_photo THEN 0 ELSE 1 END, p.created_at DESC
 		`, pq.Array(cardIDs), *currentUserID)
 	} else {
 		err = r.db.SelectContext(ctx, &photos, `
-			SELECT * FROM photos
-			WHERE card_id = ANY($1) AND visibility = 'public'
-			ORDER BY "order"
+			SELECT p.*
+			FROM photos p
+			JOIN cards c ON p.card_id = c.id
+			WHERE p.card_id = ANY($1) AND p.visibility = 'public'
+			ORDER BY CASE WHEN p.url = c.cover_photo THEN 0 ELSE 1 END, p.created_at DESC
 		`, pq.Array(cardIDs))
 	}
 	if err != nil {

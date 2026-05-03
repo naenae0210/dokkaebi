@@ -57,6 +57,11 @@ func main() {
 	auth.GET("/nicknames", authH.Nicknames)
 	auth.POST("/logout", authH.Logout)
 
+	// account deletion — requires authentication
+	authWrite := e.Group("/api/auth")
+	authWrite.Use(appmw.JWTRequired)
+	authWrite.DELETE("/me", authH.DeleteAccount)
+
 	// read-only routes — guests allowed
 	apiRead := e.Group("/api")
 	apiRead.Use(appmw.JWTOptional)

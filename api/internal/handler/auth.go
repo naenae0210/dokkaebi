@@ -51,7 +51,8 @@ func (h *AuthHandler) GoogleLogin(c echo.Context) error {
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
-	return c.Redirect(http.StatusTemporaryRedirect, h.cfg.AuthCodeURL(state))
+	url := h.cfg.AuthCodeURL(state, oauth2.SetAuthURLParam("prompt", "select_account"))
+	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 // GoogleCallback handles the OAuth2 callback from Google.
@@ -130,6 +131,29 @@ func (h *AuthHandler) Me(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "user not found")
 	}
 	return c.JSON(http.StatusOK, user)
+}
+
+// DeleteAccount removes the user, nullifies their cards, deletes their photos, and clears the session.
+func (h *AuthHandler) DeleteAccount(c echo.Context) error {
+	userID := appmw.UserIDFromContext(c)
+	if userID == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "not authenticated")
+	}
+	photoURLs, err := h.userRepo.DeleteWithPhotos(c.Request().Context(), *userID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete account")
+	}
+	for _, u := range photoURLs {
+		os.Remove(u)
+	}
+	c.SetCookie(&http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+	return c.NoContent(http.StatusNoContent)
 }
 
 // Logout clears the session cookie.

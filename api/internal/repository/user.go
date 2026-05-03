@@ -51,3 +51,41 @@ func (r *UserRepo) ListNicknames(ctx context.Context) ([]string, error) {
 	}
 	return nicknames, err
 }
+
+// DeleteWithPhotos removes the user and their photos (cards are kept with user_id = NULL).
+// Returns the file paths of all deleted photos so the caller can remove them from disk.
+func (r *UserRepo) DeleteWithPhotos(ctx context.Context, userID string) ([]string, error) {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var urls []string
+	err = tx.SelectContext(ctx, &urls, `
+		SELECT p.url FROM photos p
+		JOIN cards c ON p.card_id = c.id
+		WHERE c.user_id = $1
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = tx.ExecContext(ctx, `
+		DELETE FROM photos
+		USING cards
+		WHERE photos.card_id = cards.id AND cards.user_id = $1
+	`, userID); err != nil {
+		return nil, err
+	}
+
+	if _, err = tx.ExecContext(ctx, `UPDATE cards SET user_id = NULL WHERE user_id = $1`, userID); err != nil {
+		return nil, err
+	}
+
+	if _, err = tx.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, userID); err != nil {
+		return nil, err
+	}
+
+	return urls, tx.Commit()
+}

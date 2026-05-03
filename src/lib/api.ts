@@ -22,6 +22,10 @@ export function logout(): Promise<void> {
   return req('/auth/logout', { method: 'POST' })
 }
 
+export function deleteAccount(): Promise<void> {
+  return req('/auth/me', { method: 'DELETE' })
+}
+
 // Cards
 export function getCards(): Promise<Card[]> {
   return req('/cards')
