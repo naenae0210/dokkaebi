@@ -428,6 +428,23 @@ export default function App() {
         </div>
       )}
 
+      {/* Footer */}
+      <footer style={{
+        flexShrink: 0,
+        background: '#0F172A',
+        padding: '10px 20px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 12,
+      }}>
+        <span style={{ fontSize: 11, color: '#8d9fb8' }}>© 2026 hangwithus</span>
+        <a
+          href="mailto:naegyeong0210@gmail.com"
+          style={{ fontSize: 11, color: '#8d9fb8', textDecoration: 'none' }}
+        >
+          naegyeong0210@gmail.com
+        </a>
+      </footer>
+
       {/* Modal */}
       {(showModal || editCard) && (
         <AddCardModal

@@ -38,5 +38,5 @@ jobs:
             sleep 8
             curl -sf http://localhost/api/auth/nicknames > /dev/null
 
-            # 오래된 이미지 정리
-            docker image prune -f
+            # 빌드 캐시 및 오래된 이미지 정리
+            docker builder prune -f && docker image prune -f
