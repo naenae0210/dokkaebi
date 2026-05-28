@@ -16,6 +16,15 @@ import (
 )
 
 func main() {
+	// Validate critical secrets before starting
+	jwtSecret := mustEnv("JWT_SECRET")
+	if len(jwtSecret) < 32 {
+		log.Fatalf("JWT_SECRET must be at least 32 bytes, got %d", len(jwtSecret))
+	}
+	mustEnv("GOOGLE_CLIENT_ID")
+	mustEnv("GOOGLE_CLIENT_SECRET")
+	mustEnv("GOOGLE_MAPS_KEY")
+
 	db, err := sqlx.Connect("postgres", mustEnv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("connect db: %v", err)
@@ -50,6 +59,9 @@ func main() {
 	e.HideBanner = true
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+		Timeout: 30 * time.Second,
+	}))
 
 	e.Static("/uploads", "/uploads")
 

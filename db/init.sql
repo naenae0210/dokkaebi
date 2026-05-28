@@ -102,3 +102,13 @@ CREATE TABLE IF NOT EXISTS places (
     CONSTRAINT places_pkey        PRIMARY KEY (id),
     CONSTRAINT places_card_id_fkey FOREIGN KEY (card_id) REFERENCES cards(id)
 );
+
+-- Sequence for race-condition-free sort_order on card creation
+CREATE SEQUENCE IF NOT EXISTS card_sort_order_seq;
+
+-- Performance indexes: prevent full table scans on common query patterns
+CREATE INDEX IF NOT EXISTS idx_cards_user_id  ON cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_cards_city_id  ON cards(city_id);
+CREATE INDEX IF NOT EXISTS idx_cards_category ON cards(category);
+CREATE INDEX IF NOT EXISTS idx_photos_card_id ON photos(card_id);
+CREATE INDEX IF NOT EXISTS idx_places_card_id ON places(card_id);

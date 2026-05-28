@@ -70,3 +70,14 @@ UPDATE cards c SET cover_photo_id = (
   SELECT p.id FROM photos p WHERE p.url = c.cover_photo AND p.card_id = c.id LIMIT 1
 ) WHERE c.cover_photo IS NOT NULL;
 ALTER TABLE cards DROP COLUMN IF EXISTS cover_photo;
+
+-- Sequence for race-condition-free sort_order on card creation
+CREATE SEQUENCE IF NOT EXISTS card_sort_order_seq;
+SELECT setval('card_sort_order_seq', COALESCE((SELECT MAX(sort_order) FROM cards), 0));
+
+-- Performance indexes: prevent full table scans on common query patterns
+CREATE INDEX IF NOT EXISTS idx_cards_user_id  ON cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_cards_city_id  ON cards(city_id);
+CREATE INDEX IF NOT EXISTS idx_cards_category ON cards(category);
+CREATE INDEX IF NOT EXISTS idx_photos_card_id ON photos(card_id);
+CREATE INDEX IF NOT EXISTS idx_places_card_id ON places(card_id);

@@ -161,8 +161,7 @@ func (r *CardRepo) Create(ctx context.Context, category, title string, cityID *s
 	c.Photos = []model.Photo{}
 	err := r.db.QueryRowxContext(ctx, `
 		INSERT INTO cards (id, user_id, category, title, city_id, visibility, sort_order)
-		VALUES ($1, $2, $3, $4, $5, 'public',
-		        (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM cards))
+		VALUES ($1, $2, $3, $4, $5, 'public', NEXTVAL('card_sort_order_seq'))
 		RETURNING id, user_id, city_id, category, title, cover_photo_id,
 		          visibility, sort_order, created_at, updated_at, NULL AS owner_nickname
 	`, uuid.New().String(), userID, category, title, cityID).StructScan(&c)
