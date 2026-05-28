@@ -19,7 +19,8 @@ func NewNameHandler(repo repository.NameRepository) *NameHandler {
 func (h *NameHandler) List(c echo.Context) error {
 	names, err := h.repo.List(c.Request().Context())
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusOK, names)
 }
@@ -34,7 +35,8 @@ func (h *NameHandler) Create(c echo.Context) error {
 
 	name, err := h.repo.Create(c.Request().Context(), req.Name)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusCreated, name)
 }

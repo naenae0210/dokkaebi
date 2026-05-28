@@ -11,12 +11,12 @@ type ViewMode = 'map' | 'list'
 
 export default function App() {
   const { user, logout, deleteAccount } = useAuth()
-  const { cards, cities, nicknames, categories, placeTypes, reload } = useAppData()
+  const [cityFilter, setCityFilter] = useState<string>('all')
+  const [catFilter, setCatFilter] = useState<string>('all')
+  const { cards, cities, nicknames, categories, placeTypes, reload, loadMore, hasMore, loading } = useAppData({ cityId: cityFilter, category: catFilter })
   const [showDeleteMenu, setShowDeleteMenu] = useState(false)
   const [nameIdx, setNameIdx] = useState(0)
   const [animating, setAnimating] = useState(false)
-  const [cityFilter, setCityFilter] = useState<string>('all')
-  const [catFilter, setCatFilter] = useState<string>('all')
   const [activeCard, setActiveCard] = useState<Card | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editCard, setEditCard] = useState<Card | null>(null)
@@ -46,13 +46,9 @@ export default function App() {
     return () => clearInterval(interval)
   }, [nicknames.length])
 
-  const filtered = cards
-    .filter(c => cityFilter === 'all' || c.city_id === cityFilter)
-    .filter(c => catFilter === 'all' || c.category === catFilter)
-
   const scopedCards = cardScope === 'mine' && user
-    ? filtered.filter(c => c.user_id === user.id)
-    : filtered
+    ? cards.filter(c => c.user_id === user.id)
+    : cards
 
   // ── Map-view card list (sidebar / mobile bottom sheet) ───────────────────
   const cardList = (
@@ -84,27 +80,45 @@ export default function App() {
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {cards.length === 0 && !loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', color: '#94A3B8' }}>
           <p style={{ fontSize: 13, margin: 0 }}>No cards yet</p>
           <p style={{ fontSize: 11, margin: '4px 0 0' }}>Add one above</p>
         </div>
       ) : (
-        filtered.map(card => (
-          <PlanCard
-            key={card.id}
-            card={card}
-            categories={categories}
-            placeTypes={placeTypes}
-            active={activeCard?.id === card.id}
-            onClick={() => setActiveCard(card)}
-            onEdit={card => setEditCard(card)}
-            onPhotoAdded={reload}
-            onDeleted={reload}
-            onPlaceClick={idx => mapViewRef.current?.focusMarker(idx)}
-            currentUserId={user?.id}
-          />
-        ))
+        <>
+          {cards.map(card => (
+            <PlanCard
+              key={card.id}
+              card={card}
+              categories={categories}
+              placeTypes={placeTypes}
+              active={activeCard?.id === card.id}
+              onClick={() => setActiveCard(card)}
+              onEdit={card => setEditCard(card)}
+              onPhotoAdded={reload}
+              onDeleted={reload}
+              onPlaceClick={idx => mapViewRef.current?.focusMarker(idx)}
+              currentUserId={user?.id}
+            />
+          ))}
+          {hasMore && (
+            <button
+              onClick={loadMore}
+              disabled={loading}
+              style={{
+                width: '100%', padding: '14px 20px',
+                fontSize: 12, fontWeight: 500, color: '#6366F1',
+                background: 'none', border: 'none',
+                borderTop: '1px solid #F0F4FF',
+                cursor: loading ? 'default' : 'pointer',
+                opacity: loading ? 0.5 : 1,
+              }}
+            >
+              {loading ? 'Loading...' : 'Load more'}
+            </button>
+          )}
+        </>
       )}
     </>
   )
@@ -162,25 +176,43 @@ export default function App() {
         </div>
       )}
 
-      {scopedCards.length === 0 ? (
+      {scopedCards.length === 0 && !loading ? (
         <div style={{ padding: '24px 20px', fontSize: 12, color: '#94A3B8' }}>
           {cardScope === 'mine' ? "You haven't created any cards yet." : 'No cards found.'}
         </div>
       ) : (
-        scopedCards.map(card => (
-          <PlanCard
-            key={card.id}
-            card={card}
-            categories={categories}
-            placeTypes={placeTypes}
-            active={false}
-            onClick={() => {}}
-            onEdit={card => setEditCard(card)}
-            onPhotoAdded={reload}
-            onDeleted={reload}
-            currentUserId={user?.id}
-          />
-        ))
+        <>
+          {scopedCards.map(card => (
+            <PlanCard
+              key={card.id}
+              card={card}
+              categories={categories}
+              placeTypes={placeTypes}
+              active={false}
+              onClick={() => {}}
+              onEdit={card => setEditCard(card)}
+              onPhotoAdded={reload}
+              onDeleted={reload}
+              currentUserId={user?.id}
+            />
+          ))}
+          {hasMore && cardScope === 'all' && (
+            <button
+              onClick={loadMore}
+              disabled={loading}
+              style={{
+                width: '100%', padding: '16px 20px',
+                fontSize: 12, fontWeight: 500, color: '#6366F1',
+                background: 'none', border: 'none',
+                borderTop: '1px solid #F0F4FF',
+                cursor: loading ? 'default' : 'pointer',
+                opacity: loading ? 0.5 : 1,
+              }}
+            >
+              {loading ? 'Loading...' : 'Load more'}
+            </button>
+          )}
+        </>
       )}
     </div>
   )

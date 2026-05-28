@@ -45,10 +45,16 @@ func TestCardHandler_List_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 
-	var result []model.Card
+	var result struct {
+		Cards   []model.Card `json:"cards"`
+		Total   int          `json:"total"`
+		HasMore bool         `json:"has_more"`
+	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &result))
-	assert.Len(t, result, 2)
-	assert.Equal(t, "card-1", result[0].ID)
+	assert.Len(t, result.Cards, 2)
+	assert.Equal(t, 2, result.Total)
+	assert.False(t, result.HasMore)
+	assert.Equal(t, "card-1", result.Cards[0].ID)
 }
 
 func TestCardHandler_List_DBError(t *testing.T) {

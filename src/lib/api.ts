@@ -27,8 +27,25 @@ export function deleteAccount(): Promise<void> {
 }
 
 // Cards
-export function getCards(): Promise<Card[]> {
-  return req('/cards')
+export interface CardsResponse {
+  cards: Card[]
+  total: number
+  has_more: boolean
+}
+
+export function getCards(params?: {
+  limit?: number
+  offset?: number
+  cityId?: string
+  category?: string
+}): Promise<CardsResponse> {
+  const qs = new URLSearchParams()
+  if (params?.limit != null) qs.set('limit', String(params.limit))
+  if (params?.offset != null) qs.set('offset', String(params.offset))
+  if (params?.cityId) qs.set('city_id', params.cityId)
+  if (params?.category) qs.set('category', params.category)
+  const q = qs.toString()
+  return req(`/cards${q ? `?${q}` : ''}`)
 }
 
 export function createCard(data: { category: string; title: string; city_id: string | null }): Promise<Card> {

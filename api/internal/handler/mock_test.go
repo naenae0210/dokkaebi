@@ -23,8 +23,8 @@ type mockCardRepo struct {
 	ownerResult  bool
 }
 
-func (m *mockCardRepo) List(_ context.Context, _ *string) ([]model.Card, error) {
-	return m.listResult, m.listErr
+func (m *mockCardRepo) List(_ context.Context, _ *string, _, _ int, _, _ *string) ([]model.Card, int, error) {
+	return m.listResult, len(m.listResult), m.listErr
 }
 func (m *mockCardRepo) Create(_ context.Context, category, title string, cityID *string, userID *string) (*model.Card, error) {
 	return m.createResult, m.createErr

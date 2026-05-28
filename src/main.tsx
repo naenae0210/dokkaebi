@@ -5,8 +5,6 @@ import { AuthProvider } from './lib/auth'
 
 // Google Maps SDK 로드
 const key = import.meta.env.VITE_GOOGLE_MAPS_KEY
-console.log('🔑 API Key 존재:', !!key)
-
 const script = document.createElement('script')
 script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&v=beta&callback=initMap`
 script.async = true

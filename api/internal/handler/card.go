@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 
@@ -11,6 +12,12 @@ import (
 	"hangwith/api/internal/model"
 	"hangwith/api/internal/repository"
 )
+
+type cardsResponse struct {
+	Cards   []model.Card `json:"cards"`
+	Total   int          `json:"total"`
+	HasMore bool         `json:"has_more"`
+}
 
 type CardHandler struct {
 	repo repository.CardRepository
@@ -22,11 +29,38 @@ func NewCardHandler(repo repository.CardRepository) *CardHandler {
 
 func (h *CardHandler) List(c echo.Context) error {
 	currentUserID := appmw.UserIDFromContext(c)
-	cards, err := h.repo.List(c.Request().Context(), currentUserID)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+
+	limit := 20
+	offset := 0
+	if l := c.QueryParam("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 100 {
+			limit = n
+		}
 	}
-	return c.JSON(http.StatusOK, cards)
+	if o := c.QueryParam("offset"); o != "" {
+		if n, err := strconv.Atoi(o); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+
+	var cityID, category *string
+	if cid := c.QueryParam("city_id"); cid != "" {
+		cityID = &cid
+	}
+	if cat := c.QueryParam("category"); cat != "" {
+		category = &cat
+	}
+
+	cards, total, err := h.repo.List(c.Request().Context(), currentUserID, limit, offset, cityID, category)
+	if err != nil {
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+	return c.JSON(http.StatusOK, cardsResponse{
+		Cards:   cards,
+		Total:   total,
+		HasMore: offset+len(cards) < total,
+	})
 }
 
 func (h *CardHandler) Create(c echo.Context) error {
@@ -44,7 +78,8 @@ func (h *CardHandler) Create(c echo.Context) error {
 	}
 	card, err := h.repo.Create(c.Request().Context(), req.Category, req.Title, req.CityID, userID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusCreated, card)
 }
@@ -61,7 +96,8 @@ func (h *CardHandler) Reorder(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
 	if err := h.repo.UpdateSortOrders(c.Request().Context(), req.IDs, *userID); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.NoContent(http.StatusNoContent)
 }

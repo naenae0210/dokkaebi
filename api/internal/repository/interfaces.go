@@ -14,7 +14,7 @@ type UserRepository interface {
 }
 
 type CardRepository interface {
-	List(ctx context.Context, currentUserID *string) ([]model.Card, error)
+	List(ctx context.Context, currentUserID *string, limit, offset int, cityID, category *string) ([]model.Card, int, error)
 	Create(ctx context.Context, category, title string, cityID *string, userID *string) (*model.Card, error)
 	Update(ctx context.Context, id, userID, category, title string, cityID *string) error
 	Delete(ctx context.Context, id, userID string) error

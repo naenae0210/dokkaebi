@@ -107,7 +107,8 @@ func (h *PhotoHandler) Upload(c echo.Context) error {
 	photo, err := h.photoRepo.Create(ctx, cardID, *userID, url, order, visibility)
 	if err != nil {
 		os.Remove(filepath.Join(dir, filename))
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 
 	h.cardRepo.SetCoverPhoto(ctx, cardID, photo.ID)

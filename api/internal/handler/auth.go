@@ -109,7 +109,8 @@ func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 func (h *AuthHandler) Nicknames(c echo.Context) error {
 	nicknames, err := h.userRepo.ListNicknames(c.Request().Context())
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	firstNames := make([]string, 0, len(nicknames))
 	for _, n := range nicknames {

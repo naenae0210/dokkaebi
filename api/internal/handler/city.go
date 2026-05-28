@@ -30,14 +30,16 @@ func (h *CityHandler) List(c echo.Context) error {
 			if errors.Is(err, sql.ErrNoRows) {
 				return c.JSON(http.StatusOK, []any{})
 			}
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			c.Logger().Error(err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 		}
 		return c.JSON(http.StatusOK, []any{city})
 	}
 
 	cities, err := h.repo.List(ctx)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusOK, cities)
 }
@@ -54,7 +56,8 @@ func (h *CityHandler) Create(c echo.Context) error {
 
 	city, err := h.repo.Create(c.Request().Context(), req.Name, req.Lat, req.Lng)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusCreated, city)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -20,6 +21,9 @@ func main() {
 		log.Fatalf("connect db: %v", err)
 	}
 	defer db.Close()
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	os.MkdirAll("/uploads", 0755)
 
@@ -40,6 +44,7 @@ func main() {
 	photoH       := handler.NewPhotoHandler(photoRepo, cardRepo)
 	categoryH    := handler.NewCategoryHandler(categoryRepo)
 	placeTypeH   := handler.NewPlaceTypeHandler(placeTypeRepo)
+	geocodeH     := handler.NewGeocodeHandler()
 
 	e := echo.New()
 	e.HideBanner = true
@@ -70,6 +75,7 @@ func main() {
 	apiRead.GET("/names",       nameH.List)
 	apiRead.GET("/categories",  categoryH.List)
 	apiRead.GET("/place-types", placeTypeH.List)
+	apiRead.GET("/geocode",     geocodeH.Geocode)
 
 	// write routes — must be authenticated
 	apiWrite := e.Group("/api")

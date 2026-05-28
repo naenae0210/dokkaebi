@@ -19,7 +19,8 @@ func NewCategoryHandler(repo repository.CategoryRepository) *CategoryHandler {
 func (h *CategoryHandler) List(c echo.Context) error {
 	cats, err := h.repo.List(c.Request().Context())
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusOK, cats)
 }
@@ -39,7 +40,8 @@ func (h *CategoryHandler) Create(c echo.Context) error {
 	}
 	cat, err := h.repo.Create(c.Request().Context(), req.ID, req.Label, req.Emoji, req.SortOrder)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusCreated, cat)
 }
@@ -47,7 +49,8 @@ func (h *CategoryHandler) Create(c echo.Context) error {
 func (h *CategoryHandler) Delete(c echo.Context) error {
 	id := c.Param("id")
 	if err := h.repo.Delete(c.Request().Context(), id); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.NoContent(http.StatusNoContent)
 }
@@ -65,7 +68,8 @@ func NewPlaceTypeHandler(repo repository.PlaceTypeRepository) *PlaceTypeHandler 
 func (h *PlaceTypeHandler) List(c echo.Context) error {
 	pts, err := h.repo.List(c.Request().Context())
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusOK, pts)
 }
@@ -85,7 +89,8 @@ func (h *PlaceTypeHandler) Create(c echo.Context) error {
 	}
 	pt, err := h.repo.Create(c.Request().Context(), req.ID, req.Label, req.Color, req.SortOrder)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(http.StatusCreated, pt)
 }
@@ -93,7 +98,8 @@ func (h *PlaceTypeHandler) Create(c echo.Context) error {
 func (h *PlaceTypeHandler) Delete(c echo.Context) error {
 	id := c.Param("id")
 	if err := h.repo.Delete(c.Request().Context(), id); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		c.Logger().Error(err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 	return c.NoContent(http.StatusNoContent)
 }

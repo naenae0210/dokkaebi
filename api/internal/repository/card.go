@@ -19,20 +19,48 @@ func NewCardRepo(db *sqlx.DB) *CardRepo {
 	return &CardRepo{db: db}
 }
 
-func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Card, error) {
-	var cards []model.Card
-	if err := r.db.SelectContext(ctx, &cards, `
+func (r *CardRepo) List(ctx context.Context, currentUserID *string, limit, offset int, cityID, category *string) ([]model.Card, int, error) {
+	args := []any{}
+	argIdx := 1
+	where := ""
+
+	if cityID != nil {
+		where += fmt.Sprintf(" AND c.city_id = $%d", argIdx)
+		args = append(args, *cityID)
+		argIdx++
+	}
+	if category != nil {
+		where += fmt.Sprintf(" AND c.category = $%d", argIdx)
+		args = append(args, *category)
+		argIdx++
+	}
+
+	var total int
+	if err := r.db.QueryRowContext(ctx,
+		fmt.Sprintf("SELECT COUNT(*) FROM cards c WHERE 1=1%s", where),
+		args...,
+	).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	query := fmt.Sprintf(`
 		SELECT c.id, c.user_id, c.city_id, c.category, c.title, c.cover_photo_id,
 		       c.visibility, c.sort_order, c.created_at, c.updated_at,
 		       u.nickname AS owner_nickname
 		FROM cards c
 		LEFT JOIN users u ON c.user_id = u.id
+		WHERE 1=1%s
 		ORDER BY NULLIF(c.sort_order, 0) ASC NULLS LAST, c.created_at DESC
-	`); err != nil {
-		return nil, err
+		LIMIT $%d OFFSET $%d
+	`, where, argIdx, argIdx+1)
+	args = append(args, limit, offset)
+
+	var cards []model.Card
+	if err := r.db.SelectContext(ctx, &cards, query, args...); err != nil {
+		return nil, 0, err
 	}
 	if len(cards) == 0 {
-		return []model.Card{}, nil
+		return []model.Card{}, total, nil
 	}
 
 	cardIDs := make([]string, len(cards))
@@ -54,7 +82,7 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 			`SELECT * FROM cities WHERE id = ANY($1)`,
 			pq.Array(cityIDs),
 		); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		cityMap := make(map[string]model.City, len(cities))
 		for _, c := range cities {
@@ -75,7 +103,7 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 		`SELECT * FROM places WHERE card_id = ANY($1) ORDER BY sort_order`,
 		pq.Array(cardIDs),
 	); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// bulk load photos — private photos only visible to the card owner
@@ -100,7 +128,7 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 		`, pq.Array(cardIDs))
 	}
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	cardMap := make(map[string]*model.Card, len(cards))
@@ -124,7 +152,7 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string) ([]model.Car
 		}
 	}
 
-	return cards, nil
+	return cards, total, nil
 }
 
 func (r *CardRepo) Create(ctx context.Context, category, title string, cityID *string, userID *string) (*model.Card, error) {
