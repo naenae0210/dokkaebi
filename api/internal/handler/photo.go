@@ -26,6 +26,16 @@ func NewPhotoHandler(photoRepo repository.PhotoRepository, cardRepo repository.C
 	return &PhotoHandler{photoRepo: photoRepo, cardRepo: cardRepo}
 }
 
+func (h *PhotoHandler) List(c echo.Context) error {
+	cardID := c.Param("id")
+	userID := appmw.UserIDFromContext(c)
+	photos, err := h.photoRepo.ListByCard(c.Request().Context(), cardID, userID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+	return c.JSON(http.StatusOK, photos)
+}
+
 func (h *PhotoHandler) Delete(c echo.Context) error {
 	photoID := c.Param("photoId")
 	userID := appmw.UserIDFromContext(c)

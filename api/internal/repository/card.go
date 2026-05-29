@@ -147,7 +147,9 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string, limit, offse
 	for _, p := range photos {
 		if p.CardID != nil {
 			if c, ok := cardMap[*p.CardID]; ok {
-				c.Photos = append(c.Photos, p)
+				if len(c.Photos) < 4 {
+					c.Photos = append(c.Photos, p)
+				}
 			}
 		}
 	}

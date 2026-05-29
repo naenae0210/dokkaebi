@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { CSSProperties, ChangeEvent } from 'react'
-import type { Card, Category, PlaceType } from '../lib/supabase'
-import { uploadPhoto, deleteCard, deletePhoto } from '../lib/api'
+import type { Card, Category, PlaceType, Photo } from '../lib/supabase'
+import { uploadPhoto, deleteCard, deletePhoto, getCardPhotos } from '../lib/api'
 import GalleryModal from './GalleryModal'
 
 const COLOR_CLASS: Record<string, string> = {
@@ -70,6 +70,7 @@ interface Props {
 
 export default function PlanCard({ card, categories, placeTypes, active, onClick, onEdit, onPhotoAdded, onDeleted, onPlaceClick, currentUserId }: Props) {
   const [gallery, setGallery] = useState(false)
+  const [allPhotos, setAllPhotos] = useState<Photo[] | null>(null)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [localPhotos, setLocalPhotos] = useState(card.photos ?? [])
@@ -108,9 +109,18 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
     onDeleted?.()
   }
 
+  async function openGallery() {
+    setGallery(true)
+    if (allPhotos === null) {
+      const photos = await getCardPhotos(card.id)
+      setAllPhotos(photos)
+    }
+  }
+
   async function handleDeletePhoto(photoId: string) {
     await deletePhoto(card.id, photoId)
     setLocalPhotos(prev => prev.filter(p => p.id !== photoId))
+    setAllPhotos(prev => prev ? prev.filter(p => p.id !== photoId) : null)
     if (localPhotos.length <= 1) setGallery(false)
   }
 
@@ -241,7 +251,7 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
           {/* ── Right column: photo grid ────────────────────── */}
           {photos.length > 0 && (
             <div
-              onClick={e => { e.stopPropagation(); setGallery(true) }}
+              onClick={e => { e.stopPropagation(); openGallery() }}
               style={{
                 width: photos.length === 1 ? '28%' : '35%',
                 minWidth: 72,
@@ -255,6 +265,7 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
                 <img
                   src={photos[0].url}
                   alt=""
+                  loading="lazy"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               ) : (
@@ -270,6 +281,7 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
                       <img
                         src={p.url}
                         alt=""
+                        loading="lazy"
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                       {i === 3 && photos.length > 4 && (
@@ -350,7 +362,7 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
 
       {gallery && photos.length > 0 && (
         <GalleryModal
-          photos={photos}
+          photos={allPhotos ?? photos}
           cardId={card.id}
           currentUserId={currentUserId}
           onDeletePhoto={handleDeletePhoto}

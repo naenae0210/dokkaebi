@@ -50,4 +50,5 @@ type NameRepository interface {
 type PhotoRepository interface {
 	Create(ctx context.Context, cardID, uploaderID, url string, order int, visibility string) (*model.Photo, error)
 	DeleteByUploader(ctx context.Context, photoID, uploaderID string) (url string, err error)
+	ListByCard(ctx context.Context, cardID string, currentUserID *string) ([]model.Photo, error)
 }

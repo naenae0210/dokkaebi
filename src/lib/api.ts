@@ -72,6 +72,10 @@ export function deletePhoto(cardId: string, photoId: string): Promise<void> {
   return req(`/cards/${cardId}/photos/${photoId}`, { method: 'DELETE' })
 }
 
+export function getCardPhotos(cardId: string): Promise<Photo[]> {
+  return req(`/cards/${cardId}/photos`)
+}
+
 export function replacePlaces(
   cardId: string,
   places: Array<{ name: string; type: string; lat?: number | null; lng?: number | null }>

@@ -82,12 +82,13 @@ func main() {
 	// read-only routes — guests allowed
 	apiRead := e.Group("/api")
 	apiRead.Use(appmw.JWTOptional)
-	apiRead.GET("/cards",       cardH.List)
-	apiRead.GET("/cities",      cityH.List)
-	apiRead.GET("/names",       nameH.List)
-	apiRead.GET("/categories",  categoryH.List)
-	apiRead.GET("/place-types", placeTypeH.List)
-	apiRead.GET("/geocode",     geocodeH.Geocode)
+	apiRead.GET("/cards",              cardH.List)
+	apiRead.GET("/cards/:id/photos",   photoH.List)
+	apiRead.GET("/cities",             cityH.List)
+	apiRead.GET("/names",              nameH.List)
+	apiRead.GET("/categories",         categoryH.List)
+	apiRead.GET("/place-types",        placeTypeH.List)
+	apiRead.GET("/geocode",            geocodeH.Geocode)
 
 	// write routes — must be authenticated
 	apiWrite := e.Group("/api")

@@ -30,6 +30,36 @@ func (r *PhotoRepo) DeleteByUploader(ctx context.Context, photoID, uploaderID st
 	return url, nil
 }
 
+func (r *PhotoRepo) ListByCard(ctx context.Context, cardID string, currentUserID *string) ([]model.Photo, error) {
+	var photos []model.Photo
+	var err error
+	if currentUserID != nil {
+		err = r.db.SelectContext(ctx, &photos, `
+			SELECT p.*
+			FROM photos p
+			JOIN cards c ON p.card_id = c.id
+			WHERE p.card_id = $1
+			  AND (p.visibility = 'public' OR c.user_id = $2)
+			ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
+		`, cardID, *currentUserID)
+	} else {
+		err = r.db.SelectContext(ctx, &photos, `
+			SELECT p.*
+			FROM photos p
+			JOIN cards c ON p.card_id = c.id
+			WHERE p.card_id = $1 AND p.visibility = 'public'
+			ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
+		`, cardID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if photos == nil {
+		photos = []model.Photo{}
+	}
+	return photos, nil
+}
+
 func (r *PhotoRepo) Create(ctx context.Context, cardID, uploaderID, url string, order int, visibility string) (*model.Photo, error) {
 	if visibility != "private" {
 		visibility = "public"
