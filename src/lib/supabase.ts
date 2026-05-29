@@ -71,6 +71,7 @@ export interface Card {
   cover_photo_id?: string | null
   visibility: 'public' | 'private'
   sort_order?: number
+  photo_count?: number
   owner_nickname?: string | null
   created_at: string
   updated_at: string

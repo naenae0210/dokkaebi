@@ -284,14 +284,14 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
                         loading="lazy"
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                      {i === 3 && photos.length > 4 && (
+                      {i === 3 && (card.photo_count ?? photos.length) > 4 && (
                         <div style={{
                           position: 'absolute', inset: 0,
                           background: 'rgba(0,0,0,0.55)', color: 'white',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 11, fontWeight: 700,
                         }}>
-                          +{photos.length - 4}
+                          +{(card.photo_count ?? photos.length) - 4}
                         </div>
                       )}
                     </div>

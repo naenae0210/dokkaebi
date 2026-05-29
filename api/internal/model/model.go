@@ -72,6 +72,7 @@ type Card struct {
 	OwnerNickname  *string   `db:"owner_nickname"  json:"owner_nickname"`
 	CreatedAt      time.Time `db:"created_at"      json:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at"      json:"updated_at"`
+	PhotoCount     int       `db:"-"               json:"photo_count"`
 	City           *City     `db:"-"               json:"city"`
 	Places         []Place   `db:"-"               json:"places"`
 	Photos         []Photo   `db:"-"               json:"photos"`

@@ -106,25 +106,42 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string, limit, offse
 		return nil, 0, err
 	}
 
-	// bulk load photos — private photos only visible to the card owner
-	var photos []model.Photo
+	// bulk load photos — top 4 per card + total count via window function
+	// private photos only visible to the card owner
+	type photoRow struct {
+		model.Photo
+		TotalCount int `db:"total_count"`
+	}
+	var photoRows []photoRow
 	var err error
 	if currentUserID != nil {
-		err = r.db.SelectContext(ctx, &photos, `
-			SELECT p.*
-			FROM photos p
-			JOIN cards c ON p.card_id = c.id
-			WHERE p.card_id = ANY($1)
-			  AND (p.visibility = 'public' OR c.user_id = $2)
-			ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
+		err = r.db.SelectContext(ctx, &photoRows, `
+			SELECT * FROM (
+				SELECT p.*,
+					COUNT(*) OVER (PARTITION BY p.card_id) AS total_count,
+					ROW_NUMBER() OVER (
+						PARTITION BY p.card_id
+						ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
+					) AS rn
+				FROM photos p
+				JOIN cards c ON p.card_id = c.id
+				WHERE p.card_id = ANY($1)
+				  AND (p.visibility = 'public' OR c.user_id = $2)
+			) ranked WHERE rn <= 4
 		`, pq.Array(cardIDs), *currentUserID)
 	} else {
-		err = r.db.SelectContext(ctx, &photos, `
-			SELECT p.*
-			FROM photos p
-			JOIN cards c ON p.card_id = c.id
-			WHERE p.card_id = ANY($1) AND p.visibility = 'public'
-			ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
+		err = r.db.SelectContext(ctx, &photoRows, `
+			SELECT * FROM (
+				SELECT p.*,
+					COUNT(*) OVER (PARTITION BY p.card_id) AS total_count,
+					ROW_NUMBER() OVER (
+						PARTITION BY p.card_id
+						ORDER BY CASE WHEN p.id = c.cover_photo_id THEN 0 ELSE 1 END, p.created_at DESC
+					) AS rn
+				FROM photos p
+				JOIN cards c ON p.card_id = c.id
+				WHERE p.card_id = ANY($1) AND p.visibility = 'public'
+			) ranked WHERE rn <= 4
 		`, pq.Array(cardIDs))
 	}
 	if err != nil {
@@ -144,12 +161,11 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string, limit, offse
 			}
 		}
 	}
-	for _, p := range photos {
-		if p.CardID != nil {
-			if c, ok := cardMap[*p.CardID]; ok {
-				if len(c.Photos) < 4 {
-					c.Photos = append(c.Photos, p)
-				}
+	for _, row := range photoRows {
+		if row.CardID != nil {
+			if c, ok := cardMap[*row.CardID]; ok {
+				c.PhotoCount = row.TotalCount
+				c.Photos = append(c.Photos, row.Photo)
 			}
 		}
 	}
