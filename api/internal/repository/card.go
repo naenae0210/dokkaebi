@@ -116,7 +116,8 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string, limit, offse
 	var err error
 	if currentUserID != nil {
 		err = r.db.SelectContext(ctx, &photoRows, `
-			SELECT * FROM (
+			SELECT id, card_id, uploader_id, url, "order", visibility, created_at, updated_at, total_count
+			FROM (
 				SELECT p.*,
 					COUNT(*) OVER (PARTITION BY p.card_id) AS total_count,
 					ROW_NUMBER() OVER (
@@ -131,7 +132,8 @@ func (r *CardRepo) List(ctx context.Context, currentUserID *string, limit, offse
 		`, pq.Array(cardIDs), *currentUserID)
 	} else {
 		err = r.db.SelectContext(ctx, &photoRows, `
-			SELECT * FROM (
+			SELECT id, card_id, uploader_id, url, "order", visibility, created_at, updated_at, total_count
+			FROM (
 				SELECT p.*,
 					COUNT(*) OVER (PARTITION BY p.card_id) AS total_count,
 					ROW_NUMBER() OVER (
