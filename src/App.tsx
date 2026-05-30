@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import type { Card } from './lib/supabase'
 import { useAuth } from './lib/auth'
 import { useAppData } from './hooks/useAppData'
@@ -25,6 +25,8 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [cardScope, setCardScope] = useState<'mine' | 'all'>('mine')
   const mapViewRef = useRef<MapViewHandle>(null)
+  const [sidebarWidth, setSidebarWidth] = useState(360)
+  const [mapHeightPct, setMapHeightPct] = useState(40)
 
   const currentName = nicknames[nameIdx % Math.max(nicknames.length, 1)] ?? 'us'
 
@@ -49,6 +51,54 @@ export default function App() {
   const scopedCards = cardScope === 'mine' && user
     ? cards.filter(c => c.user_id === user.id)
     : cards
+
+  const handleDesktopResizerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = sidebarWidth
+    const onMouseMove = (ev: MouseEvent) => {
+      const newWidth = Math.max(200, Math.min(window.innerWidth * 0.65, startWidth + ev.clientX - startX))
+      setSidebarWidth(newWidth)
+    }
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [sidebarWidth])
+
+  const handleMobileResizerMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    const startY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
+    const startPct = mapHeightPct
+    const onMove = (currentY: number) => {
+      const container = document.getElementById('mobile-body')
+      const containerHeight = container ? container.clientHeight : window.innerHeight
+      const newPct = Math.max(15, Math.min(75, startPct + ((currentY - startY) / containerHeight) * 100))
+      setMapHeightPct(newPct)
+    }
+    const onMouseMove = (ev: MouseEvent) => onMove(ev.clientY)
+    const onTouchMove = (ev: TouchEvent) => { ev.preventDefault(); onMove(ev.touches[0].clientY) }
+    const cleanup = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', cleanup)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', cleanup)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', cleanup)
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', cleanup)
+  }, [mapHeightPct])
 
   // ── Map-view card list (sidebar / mobile bottom sheet) ───────────────────
   const cardList = (
@@ -432,28 +482,47 @@ export default function App() {
           {listView}
         </div>
       ) : isMobile ? (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          <div style={{ flex: '0 0 40%', position: 'relative', minHeight: 0 }}>
+        <div id="mobile-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <div style={{ flex: `0 0 ${mapHeightPct}%`, position: 'relative', minHeight: 0 }}>
             <MapView ref={mapViewRef} activeCard={activeCard} />
           </div>
-          <div style={{ flex: '0 0 60%', background: 'white', overflowY: 'auto', borderTop: '1px solid #E2E8F0' }}>
-            <div style={{
-              display: 'flex', justifyContent: 'center',
-              padding: '8px 0 4px',
-              position: 'sticky', top: 0,
-              background: 'white', zIndex: 10,
-              borderBottom: '1px solid #E2E8F0',
-            }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#CBD5E1' }} />
-            </div>
+          <div
+            onMouseDown={handleMobileResizerMouseDown}
+            onTouchStart={handleMobileResizerMouseDown}
+            style={{
+              height: 20,
+              flexShrink: 0,
+              cursor: 'row-resize',
+              background: 'white',
+              borderTop: '1px solid #E2E8F0',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#CBD5E1' }} />
+          </div>
+          <div style={{ flex: 1, background: 'white', overflowY: 'auto', minHeight: 0 }}>
             {cardList}
           </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <div style={{ width: 400, flexShrink: 0, background: 'white', overflowY: 'auto', borderRight: '1px solid #E2E8F0' }}>
+          <div style={{ width: sidebarWidth, flexShrink: 0, background: 'white', overflowY: 'auto' }}>
             {cardList}
           </div>
+          <div
+            onMouseDown={handleDesktopResizerMouseDown}
+            style={{
+              width: 5,
+              flexShrink: 0,
+              cursor: 'col-resize',
+              background: '#E2E8F0',
+              transition: 'background 0.15s',
+              zIndex: 10,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#C7D2FE')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#E2E8F0')}
+          />
           <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
             <MapView ref={mapViewRef} activeCard={activeCard} />
           </div>
