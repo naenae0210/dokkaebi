@@ -1,4 +1,4 @@
-import type { Card, City, Name, User, Category, PlaceType, Photo } from './supabase'
+import type { Card, City, Name, User, Category, PlaceType, Photo } from './types'
 
 const BASE = '/api'
 

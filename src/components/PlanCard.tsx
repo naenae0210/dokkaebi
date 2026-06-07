@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { CSSProperties, ChangeEvent } from 'react'
-import type { Card, Category, PlaceType, Photo } from '../lib/supabase'
+import type { Card, Category, PlaceType, Photo } from '../lib/types'
 import { uploadPhoto, deleteCard, deletePhoto, getCardPhotos } from '../lib/api'
 import GalleryModal from './GalleryModal'
 

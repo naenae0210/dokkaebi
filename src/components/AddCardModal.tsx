@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { Category, Place, PlaceType, Card, City } from '../lib/supabase'
+import type { Category, Place, PlaceType, Card, City } from '../lib/types'
 import * as api from '../lib/api'
 import CitySearch from './CitySearch'
 import PlaceSearch from './PlaceSearch'

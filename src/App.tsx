@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import type { Card } from './lib/supabase'
+import type { Card } from './lib/types'
 import { useAuth } from './lib/auth'
 import { useAppData } from './hooks/useAppData'
 import PlanCard from './components/PlanCard'

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import * as api from '../lib/api'
-import type { Card, City, Category, PlaceType } from '../lib/supabase'
+import type { Card, City, Category, PlaceType } from '../lib/types'
 
 const PAGE_SIZE = 20
 

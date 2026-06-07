@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PlaceType } from '../lib/supabase'
+import type { PlaceType } from '../lib/types'
 import { usePlacesAutocomplete } from '../hooks/usePlacesAutocomplete'
 import type { Prediction } from '../hooks/usePlacesAutocomplete'
 

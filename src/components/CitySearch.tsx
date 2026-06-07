@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { City } from '../lib/supabase'
+import type { City } from '../lib/types'
 import { findOrCreateCity } from '../lib/api'
 import { usePlacesAutocomplete } from '../hooks/usePlacesAutocomplete'
 import type { Prediction } from '../hooks/usePlacesAutocomplete'

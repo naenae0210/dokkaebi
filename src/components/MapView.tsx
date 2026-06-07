@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
-import type { Card } from '../lib/supabase'
+import type { Card } from '../lib/types'
 
 export interface MapViewHandle {
   focusMarker: (idx: number) => void

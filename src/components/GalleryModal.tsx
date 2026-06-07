@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Photo } from '../lib/supabase'
+import type { Photo } from '../lib/types'
 
 interface Props {
   photos: Photo[]

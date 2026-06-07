@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import type { User } from './supabase'
+import type { User } from './types'
 import { getMe, logout as apiLogout, deleteAccount as apiDeleteAccount } from './api'
 
 interface AuthState {
