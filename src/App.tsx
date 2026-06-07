@@ -273,14 +273,18 @@ export default function App() {
       {/* Header */}
       <header style={{ background: '#0F172A', color: '#F1F5F9', padding: '16px 20px 12px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h1 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 700,
-            fontSize: isMobile ? 22 : 27,
-            letterSpacing: '-0.03em',
-            margin: 0,
-            display: 'flex', alignItems: 'baseline', gap: 8,
-          }}>
+          <h1
+            onClick={() => { setCityFilter('all'); setCatFilter('all'); setViewMode('map'); setActiveCard(null) }}
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 700,
+              fontSize: isMobile ? 22 : 27,
+              letterSpacing: '-0.03em',
+              margin: 0,
+              display: 'flex', alignItems: 'baseline', gap: 8,
+              cursor: 'pointer',
+            }}
+          >
             Hang <em style={{ fontStyle: 'italic', color: '#818CF8' }}>with</em>
             <span style={{ display: 'inline-block', overflow: 'hidden', height: '1.5em', verticalAlign: 'bottom', minWidth: 60 }}>
               <span style={{

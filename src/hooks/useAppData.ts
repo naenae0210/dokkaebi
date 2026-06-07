@@ -57,7 +57,7 @@ export function useAppData(filters: { cityId: string; category: string }) {
     finally { setLoading(false) }
   }, [cityId, category])
 
-  const loadMore = useCallback(async () => {
+const loadMore = useCallback(async () => {
     if (loading) return
     setLoading(true)
     try {

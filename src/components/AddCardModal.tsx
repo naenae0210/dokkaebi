@@ -168,7 +168,6 @@ useEffect(() => {
           await api.replacePlaces(card.id, placesToSave)
         }
       }
-
       onCreated()
     } finally {
       setSaving(false)
