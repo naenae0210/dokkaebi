@@ -6,37 +6,74 @@ on:
       - main
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - 'docker-compose.yml'
+            web:
+              - 'src/**'
+              - 'nginx/**'
+              - 'public/**'
+              - 'index.html'
+              - 'Dockerfile'
+              - 'vite.config.ts'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tailwind.config.js'
+              - 'postcss.config.js'
+              - 'tsconfig*.json'
+              - 'docker-compose.yml'
+
   deploy:
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          BUILD_API: ${{ needs.changes.outputs.api }}
+          BUILD_WEB: ${{ needs.changes.outputs.web }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
+          envs: BUILD_API,BUILD_WEB
           command_timeout: 30m
           script: |
             set -e
             cd ~/dokkaebi
 
-            # 최신 코드 받기
             git fetch origin
             git reset --hard origin/main
 
-            # .env는 VM에서 직접 관리 — 배포 시 건드리지 않음
+            # 변경된 서비스만 순차 빌드 (동시 빌드 시 1GB RAM OOM 방지)
+            if [ "$BUILD_API" = "true" ]; then
+              echo "=== building api ==="
+              docker compose build api
+              docker compose up -d api
+            fi
 
-            # api, web 순차 빌드 (동시 빌드 시 1GB RAM 서버 OOM 발생)
-            docker compose build api
-            docker compose build web
+            if [ "$BUILD_WEB" = "true" ]; then
+              echo "=== building web ==="
+              docker compose build web
+              docker compose up -d web
+            fi
 
-            # 컨테이너 재시작
-            docker compose up -d
-
-            # 서비스 기동 대기 후 헬스체크
             sleep 8
             curl -sf http://localhost/api/auth/nicknames > /dev/null
 
-            # 오래된 이미지 정리 (빌드 캐시는 유지해서 다음 배포 속도 확보)
             docker image prune -f
