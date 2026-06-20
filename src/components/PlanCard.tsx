@@ -253,51 +253,49 @@ export default function PlanCard({ card, categories, placeTypes, active, onClick
             <div
               onClick={e => { e.stopPropagation(); openGallery() }}
               style={{
-                width: photos.length === 1 ? '28%' : '35%',
+                width: '35%',
                 minWidth: 72,
-                maxWidth: photos.length === 1 ? 110 : 140,
+                maxWidth: 140,
                 flexShrink: 0, overflow: 'hidden',
                 cursor: 'pointer',
                 borderLeft: '1px solid #E2E8F0',
               }}
             >
-              {photos.length === 1 ? (
-                <img
-                  src={photos[0].url}
-                  alt=""
-                  loading="lazy"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gridTemplateRows: photos.length === 2 ? '1fr' : '1fr 1fr',
-                  gap: 1,
-                  height: '100%',
-                }}>
-                  {photos.slice(0, 4).map((p, i) => (
-                    <div key={p.id} style={{ position: 'relative', overflow: 'hidden' }}>
-                      <img
-                        src={p.url}
-                        alt=""
-                        loading="lazy"
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                      {i === 3 && (card.photo_count ?? photos.length) > 4 && (
-                        <div style={{
-                          position: 'absolute', inset: 0,
-                          background: 'rgba(0,0,0,0.55)', color: 'white',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, fontWeight: 700,
-                        }}>
-                          +{(card.photo_count ?? photos.length) - 4}
-                        </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gridTemplateRows: '1fr 1fr',
+                gap: 1,
+                height: '100%',
+              }}>
+                {Array.from({ length: 4 }).map((_, i) => {
+                  const p = photos[i]
+                  return (
+                    <div key={p?.id ?? `empty-${i}`} style={{ position: 'relative', overflow: 'hidden' }}>
+                      {p && (
+                        <>
+                          <img
+                            src={p.url}
+                            alt=""
+                            loading="lazy"
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          {i === 3 && (card.photo_count ?? photos.length) > 4 && (
+                            <div style={{
+                              position: 'absolute', inset: 0,
+                              background: 'rgba(0,0,0,0.55)', color: 'white',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 700,
+                            }}>
+                              +{(card.photo_count ?? photos.length) - 4}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>

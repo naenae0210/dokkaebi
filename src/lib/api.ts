@@ -110,8 +110,13 @@ export async function findOrCreateCity(
   lat: number | null,
   lng: number | null
 ): Promise<City> {
-  const results = await req<City[]>(`/cities?search=${encodeURIComponent(name)}`)
-  if (results.length > 0) return results[0]
+  // Coordinates-first lookup prevents multilingual duplicates (e.g. "Seoul" vs "Séoul")
+  if (lat != null && lng != null) {
+    const byCoords = await req<City[]>(`/cities?lat=${lat}&lng=${lng}`)
+    if (byCoords.length > 0) return byCoords[0]
+  }
+  const byName = await req<City[]>(`/cities?search=${encodeURIComponent(name)}`)
+  if (byName.length > 0) return byName[0]
   return req('/cities', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

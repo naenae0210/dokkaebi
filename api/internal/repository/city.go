@@ -35,6 +35,20 @@ func (r *CityRepo) FindByName(ctx context.Context, name string) (*model.City, er
 	return &city, nil
 }
 
+func (r *CityRepo) FindByCoords(ctx context.Context, lat, lng float64) (*model.City, error) {
+	var city model.City
+	err := r.db.GetContext(ctx, &city, `
+		SELECT * FROM cities
+		WHERE lat IS NOT NULL AND lng IS NOT NULL
+		AND ABS(lat - $1) < 0.1 AND ABS(lng - $2) < 0.1
+		LIMIT 1
+	`, lat, lng)
+	if err != nil {
+		return nil, err
+	}
+	return &city, nil
+}
+
 func (r *CityRepo) Create(ctx context.Context, name string, lat, lng *float64) (*model.City, error) {
 	var city model.City
 	err := r.db.QueryRowxContext(ctx, `

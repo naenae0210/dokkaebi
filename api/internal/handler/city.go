@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 
@@ -18,11 +19,28 @@ func NewCityHandler(repo repository.CityRepository) *CityHandler {
 	return &CityHandler{repo: repo}
 }
 
-// List returns all cities, or searches by name when ?search= is provided.
-// Used by CitySearch to find-or-create a city.
+// List returns all cities, searches by coordinates when ?lat=&lng= are provided
+// (takes priority to prevent multilingual duplicates), or searches by name when ?search= is provided.
 func (h *CityHandler) List(c echo.Context) error {
 	ctx := c.Request().Context()
+	latParam := c.QueryParam("lat")
+	lngParam := c.QueryParam("lng")
 	search := c.QueryParam("search")
+
+	if latParam != "" && lngParam != "" {
+		lat, errLat := strconv.ParseFloat(latParam, 64)
+		lng, errLng := strconv.ParseFloat(lngParam, 64)
+		if errLat == nil && errLng == nil {
+			city, err := h.repo.FindByCoords(ctx, lat, lng)
+			if err == nil {
+				return c.JSON(http.StatusOK, []any{city})
+			}
+			if !errors.Is(err, sql.ErrNoRows) {
+				c.Logger().Error(err)
+				return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+			}
+		}
+	}
 
 	if search != "" {
 		city, err := h.repo.FindByName(ctx, search)

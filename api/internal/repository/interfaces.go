@@ -27,6 +27,7 @@ type CardRepository interface {
 type CityRepository interface {
 	List(ctx context.Context) ([]model.City, error)
 	FindByName(ctx context.Context, name string) (*model.City, error)
+	FindByCoords(ctx context.Context, lat, lng float64) (*model.City, error)
 	Create(ctx context.Context, name string, lat, lng *float64) (*model.City, error)
 }
 

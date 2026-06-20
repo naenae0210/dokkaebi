@@ -65,6 +65,9 @@ func (m *mockCityRepo) List(_ context.Context) ([]model.City, error) {
 func (m *mockCityRepo) FindByName(_ context.Context, name string) (*model.City, error) {
 	return m.findResult, m.findErr
 }
+func (m *mockCityRepo) FindByCoords(_ context.Context, lat, lng float64) (*model.City, error) {
+	return m.findResult, m.findErr
+}
 func (m *mockCityRepo) Create(_ context.Context, name string, lat, lng *float64) (*model.City, error) {
 	return m.createResult, m.createErr
 }
@@ -88,15 +91,84 @@ func (m *mockNameRepo) Create(_ context.Context, name string) (*model.Name, erro
 // --- mockPhotoRepo ---
 
 type mockPhotoRepo struct {
+	listResult   []model.Photo
+	listErr      error
 	createResult *model.Photo
 	createErr    error
 	deleteURL    string
 	deleteErr    error
 }
 
+func (m *mockPhotoRepo) ListByCard(_ context.Context, _ string, _ *string) ([]model.Photo, error) {
+	return m.listResult, m.listErr
+}
 func (m *mockPhotoRepo) Create(_ context.Context, cardID, uploaderID, url string, order int, visibility string) (*model.Photo, error) {
 	return m.createResult, m.createErr
 }
 func (m *mockPhotoRepo) DeleteByUploader(_ context.Context, photoID, uploaderID string) (string, error) {
 	return m.deleteURL, m.deleteErr
+}
+
+// --- mockUserRepo ---
+
+type mockUserRepo struct {
+	findResult      *model.User
+	findErr         error
+	nicknamesResult []string
+	nicknamesErr    error
+	deletePhotoURLs []string
+	deleteErr       error
+}
+
+func (m *mockUserRepo) UpsertByProvider(_ context.Context, _, _, _, _ string, _ *string) (*model.User, error) {
+	return m.findResult, m.findErr
+}
+func (m *mockUserRepo) FindByID(_ context.Context, _ string) (*model.User, error) {
+	return m.findResult, m.findErr
+}
+func (m *mockUserRepo) ListNicknames(_ context.Context) ([]string, error) {
+	return m.nicknamesResult, m.nicknamesErr
+}
+func (m *mockUserRepo) DeleteWithPhotos(_ context.Context, _ string) ([]string, error) {
+	return m.deletePhotoURLs, m.deleteErr
+}
+
+// --- mockCategoryRepo ---
+
+type mockCategoryRepo struct {
+	listResult   []model.Category
+	listErr      error
+	createResult *model.Category
+	createErr    error
+	deleteErr    error
+}
+
+func (m *mockCategoryRepo) List(_ context.Context) ([]model.Category, error) {
+	return m.listResult, m.listErr
+}
+func (m *mockCategoryRepo) Create(_ context.Context, id, label, emoji string, sortOrder int) (*model.Category, error) {
+	return m.createResult, m.createErr
+}
+func (m *mockCategoryRepo) Delete(_ context.Context, _ string) error {
+	return m.deleteErr
+}
+
+// --- mockPlaceTypeRepo ---
+
+type mockPlaceTypeRepo struct {
+	listResult   []model.PlaceType
+	listErr      error
+	createResult *model.PlaceType
+	createErr    error
+	deleteErr    error
+}
+
+func (m *mockPlaceTypeRepo) List(_ context.Context) ([]model.PlaceType, error) {
+	return m.listResult, m.listErr
+}
+func (m *mockPlaceTypeRepo) Create(_ context.Context, id, label, color string, sortOrder int) (*model.PlaceType, error) {
+	return m.createResult, m.createErr
+}
+func (m *mockPlaceTypeRepo) Delete(_ context.Context, _ string) error {
+	return m.deleteErr
 }
