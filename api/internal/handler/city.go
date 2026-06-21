@@ -39,6 +39,7 @@ func (h *CityHandler) List(c echo.Context) error {
 				c.Logger().Error(err)
 				return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 			}
+			return c.JSON(http.StatusOK, []any{})
 		}
 	}
 

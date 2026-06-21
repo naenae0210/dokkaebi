@@ -79,6 +79,33 @@ func TestCityHandler_List_SearchNotFound(t *testing.T) {
 	assert.Empty(t, result)
 }
 
+func TestCityHandler_List_CoordsNotFound_ReturnsEmpty(t *testing.T) {
+	// Existing cities must NOT be returned as a false match when coords don't match anything.
+	mock := &mockCityRepo{
+		findErr: sql.ErrNoRows,
+		listResult: []model.City{
+			{ID: "city-1", Name: "Tampa", Country: "US"},
+			{ID: "city-2", Name: "New York", Country: "US"},
+		},
+	}
+
+	e := newEcho()
+	req := httptest.NewRequest(http.MethodGet, "/api/cities?lat=35.15008220000001&lng=126.8559071", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.QueryParams().Set("lat", "35.15008220000001")
+	c.QueryParams().Set("lng", "126.8559071")
+
+	h := handler.NewCityHandler(mock)
+	require.NoError(t, h.List(c))
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var result []any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &result))
+	assert.Empty(t, result)
+}
+
 func TestCityHandler_Create_Success(t *testing.T) {
 	lat, lng := 27.9, -82.4
 	mock := &mockCityRepo{
