@@ -105,6 +105,37 @@ func (h *AuthHandler) GoogleCallback(c echo.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, os.Getenv("APP_URL"))
 }
 
+// DevLogin signs in as a fixed local dev user, skipping Google OAuth entirely.
+// Only enabled when DEV_AUTH_BYPASS=true, so it can never run in production.
+func (h *AuthHandler) DevLogin(c echo.Context) error {
+	if os.Getenv("DEV_AUTH_BYPASS") != "true" {
+		return echo.NewHTTPError(http.StatusNotFound, "not found")
+	}
+
+	user, err := h.userRepo.UpsertByProvider(
+		c.Request().Context(),
+		"dev", "dev-user", "dev@localhost", "Dev User", nil,
+	)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to upsert dev user")
+	}
+
+	sessionToken, err := signJWT(user.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create session")
+	}
+
+	c.SetCookie(&http.Cookie{
+		Name:     "session",
+		Value:    sessionToken,
+		Path:     "/",
+		MaxAge:   int((7 * 24 * time.Hour).Seconds()),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	return c.NoContent(http.StatusNoContent)
+}
+
 // Nicknames returns the first name of every registered user.
 func (h *AuthHandler) Nicknames(c echo.Context) error {
 	nicknames, err := h.userRepo.ListNicknames(c.Request().Context())

@@ -24,6 +24,7 @@ func main() {
 	mustEnv("GOOGLE_CLIENT_ID")
 	mustEnv("GOOGLE_CLIENT_SECRET")
 	mustEnv("GOOGLE_MAPS_KEY")
+	mustEnv("GEMINI_API_KEY")
 
 	db, err := sqlx.Connect("postgres", mustEnv("DATABASE_URL"))
 	if err != nil {
@@ -54,6 +55,7 @@ func main() {
 	categoryH    := handler.NewCategoryHandler(categoryRepo)
 	placeTypeH   := handler.NewPlaceTypeHandler(placeTypeRepo)
 	geocodeH     := handler.NewGeocodeHandler()
+	aiH          := handler.NewAIHandler(categoryRepo, placeTypeRepo)
 
 	e := echo.New()
 	e.HideBanner = true
@@ -73,6 +75,7 @@ func main() {
 	auth.GET("/me", authH.Me)
 	auth.GET("/nicknames", authH.Nicknames)
 	auth.POST("/logout", authH.Logout)
+	auth.GET("/dev-login", authH.DevLogin)
 
 	// account deletion — requires authentication
 	authWrite := e.Group("/api/auth")
@@ -106,6 +109,7 @@ func main() {
 	apiWrite.DELETE("/categories/:id",            categoryH.Delete)
 	apiWrite.POST  ("/place-types",               placeTypeH.Create)
 	apiWrite.DELETE("/place-types/:id",           placeTypeH.Delete)
+	apiWrite.POST  ("/ai/plan",                   aiH.GeneratePlan)
 
 	port := os.Getenv("PORT")
 	if port == "" {

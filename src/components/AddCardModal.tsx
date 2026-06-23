@@ -107,6 +107,9 @@ export default function AddCardModal({ editCard, categories, placeTypes, onClose
       : [{ name: '', type: placeTypes[0]?.id ?? 'Activity' }]
   )
   const [saving, setSaving] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
     const sensors = useSensors(
     useSensor(PointerSensor, {
         activationConstraint: { distance: 8 },
@@ -152,6 +155,42 @@ useEffect(() => {
     setPlaces(prev => prev.filter((_, i) => i !== idx))
   }
 
+  async function handleAIGenerate() {
+    const prompt = aiPrompt.trim()
+    if (!prompt) return
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const suggestion = await api.generatePlan(prompt)
+
+      const geo = await api.geocode(suggestion.city).catch(() => null)
+      const city = await api.findOrCreateCity(suggestion.city, geo?.lat ?? null, geo?.lng ?? null)
+      setCityId(city.id)
+      setCitySearch(city.name)
+      setShowNewCity(false)
+      setCities(prev => (prev.find(c => c.id === city.id) ? prev : [...prev, city]))
+
+      if (categories.find(cat => cat.id === suggestion.category)) {
+        setCategory(suggestion.category)
+      }
+      setTitle(suggestion.title)
+
+      const suggestedPlaces: Place[] = suggestion.places.map(p => ({
+        name: p.name,
+        type: placeTypes.find(pt => pt.id === p.type) ? p.type : (placeTypes[0]?.id ?? 'Activity'),
+        lat: null,
+        lng: null,
+      }))
+      if (suggestedPlaces.length > 0) setPlaces(suggestedPlaces)
+
+      setAiPrompt('')
+    } catch {
+      setAiError('일정을 생성하지 못했어요. 다시 시도해주세요.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   async function handleSave() {
     setSaving(true)
     try {
@@ -195,6 +234,36 @@ useEffect(() => {
         <div className="p-6 overflow-y-auto flex-1">
           {step === 'form' ? (
             <div className="flex flex-col gap-5">
+
+              {/* AI 일정 생성 */}
+              {!isEdit && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex flex-col gap-2">
+                  <label className="text-xs font-medium text-indigo-700">
+                    ✨ AI로 일정 만들기
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      value={aiPrompt}
+                      onChange={e => setAiPrompt(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); handleAIGenerate() }
+                      }}
+                      placeholder="예: 도쿄 여행일정 짜줘"
+                      disabled={aiLoading}
+                      className="flex-1 text-sm border border-indigo-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-400 text-gray-900 bg-white disabled:opacity-50"
+                    />
+                    <button
+                      onClick={handleAIGenerate}
+                      disabled={aiLoading || !aiPrompt.trim()}
+                      className="px-3 py-2 text-sm bg-[#6366F1] text-white rounded-lg hover:bg-[#4F46E5] transition-colors disabled:opacity-40 flex-shrink-0"
+                    >
+                      {aiLoading ? '생성 중...' : '생성'}
+                    </button>
+                  </div>
+                  {aiError && <p className="text-xs text-red-500">{aiError}</p>}
+                  <p className="text-xs text-indigo-400">생성된 내용은 아래에서 자유롭게 검토하고 수정한 뒤 저장하세요.</p>
+                </div>
+              )}
 
               {/* 도시 */}
               <div>

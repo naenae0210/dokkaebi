@@ -10,7 +10,7 @@ import type { MapViewHandle } from './components/MapView'
 type ViewMode = 'map' | 'list'
 
 export default function App() {
-  const { user, logout, deleteAccount } = useAuth()
+  const { user, logout, deleteAccount, devLogin } = useAuth()
   const [cityFilter, setCityFilter] = useState<string>('all')
   const [catFilter, setCatFilter] = useState<string>('all')
   const { cards, cities, nicknames, categories, placeTypes, reload, loadMore, hasMore, loading } = useAppData({ cityId: cityFilter, category: catFilter })
@@ -355,12 +355,22 @@ export default function App() {
                 </div>
               </>
             ) : (
-              <a
-                href="/api/auth/google"
-                style={{ fontSize: 11, color: '#818CF8', textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase' }}
-              >
-                sign in
-              </a>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <a
+                  href="/api/auth/google"
+                  style={{ fontSize: 11, color: '#818CF8', textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase' }}
+                >
+                  sign in
+                </a>
+                {import.meta.env.DEV && (
+                  <button
+                    onClick={devLogin}
+                    style={{ fontSize: 11, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase' }}
+                  >
+                    dev login
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>

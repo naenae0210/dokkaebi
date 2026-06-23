@@ -154,6 +154,27 @@ export function reorderCards(ids: string[]): Promise<void> {
   })
 }
 
+// Geocode
+export function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
+  return req(`/geocode?address=${encodeURIComponent(address)}`)
+}
+
+// AI plan generation — returns a draft for the user to review/edit, nothing is saved
+export interface AIPlanSuggestion {
+  city: string
+  category: string
+  title: string
+  places: { name: string; type: string }[]
+}
+
+export function generatePlan(prompt: string): Promise<AIPlanSuggestion> {
+  return req('/ai/plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  })
+}
+
 // Names
 export function getNames(): Promise<Name[]> {
   return req('/names')

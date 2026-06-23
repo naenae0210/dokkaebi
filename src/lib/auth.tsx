@@ -7,6 +7,7 @@ interface AuthState {
   loading: boolean
   logout: () => Promise<void>
   deleteAccount: () => Promise<void>
+  devLogin: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState>({
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthState>({
   loading: true,
   logout: async () => {},
   deleteAccount: async () => {},
+  devLogin: async () => {},
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -37,8 +39,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }
 
+  // Dev-only: signs in via the backend's DEV_AUTH_BYPASS-gated endpoint, skipping Google OAuth.
+  async function devLogin() {
+    await fetch('/api/auth/dev-login')
+    const me = await getMe().catch(() => null)
+    setUser(me)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, logout, deleteAccount }}>
+    <AuthContext.Provider value={{ user, loading, logout, deleteAccount, devLogin }}>
       {children}
     </AuthContext.Provider>
   )
